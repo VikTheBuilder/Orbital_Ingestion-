@@ -1,0 +1,73 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Sector-specific rules for Payment System Operators, Payment Aggregators, PPI Issuers, and Card Networks.",
+  "applies_to": ["Payment System Operator", "Payment System Participant", "PPI Issuer", "Payment Aggregator"],
+  "domain_keyword_additions": {
+    "Payments": [
+      "nodal account", "float", "settlement cycle", "interchange fee",
+      "payment aggregator", "pa", "payment gateway", "pg",
+      "card tokenisation", "cof tokenisation", "merchant discount rate", "mdr",
+      "failed transaction", "reversal", "chargeback", "dispute resolution",
+      "issuance guidelines", "wallet kyc", "full kyc", "minimum kyc"
+    ],
+    "Cybersecurity": [
+      "two factor authentication", "2fa", "otp", "dynamic otp",
+      "end to end encryption", "tls", "ssl", "tokenisation payment",
+      "pci dss", "payment card industry", "fraud analytics"
+    ]
+  },
+  "obligation_additions": [
+    {
+      "id": "PO-001",
+      "name": "refund_timeline",
+      "trigger_phrases": ["shall credit the refund within", "failed transaction reversal", "shall reverse within"],
+      "domain": "CustomerService",
+      "obligation_type": "mandatory",
+      "sub_type": "customer_protection",
+      "deadline": {"text": "within 5 days", "duration": "5 days", "urgency": "short_term"},
+      "severity": "high",
+      "departments": ["Operations", "CustomerService", "DigitalBanking"]
+    },
+    {
+      "id": "PO-002",
+      "name": "nodal_account_reporting",
+      "trigger_phrases": ["shall maintain a nodal account", "escrow account", "settlement account"],
+      "domain": "Payments",
+      "obligation_type": "mandatory",
+      "sub_type": "record_retention",
+      "severity": "high",
+      "departments": ["Operations", "Finance", "Compliance"]
+    },
+    {
+      "id": "PO-003",
+      "name": "card_on_file_tokenisation",
+      "trigger_phrases": ["shall not store", "card on file", "cof tokenisation", "shall tokenise"],
+      "domain": "Payments",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "critical",
+      "departments": ["IT", "DigitalBanking", "Compliance"]
+    },
+    {
+      "id": "PO-004",
+      "name": "ppi_kyc_upgrade",
+      "trigger_phrases": ["full kyc ppi", "upgrade wallet", "wallet kyc", "minimum kyc limit"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "kyc_due_diligence",
+      "severity": "high",
+      "departments": ["AML_KYC", "DigitalBanking", "Compliance"]
+    },
+    {
+      "id": "PO-005",
+      "name": "system_availability",
+      "trigger_phrases": ["system availability", "uptime", "downtime", "shall ensure availability of"],
+      "domain": "ITInfrastructure",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "high",
+      "departments": ["IT", "Operations"]
+    }
+  ]
+}

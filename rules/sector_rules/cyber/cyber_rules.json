@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Cybersecurity-specific rule pack for RBI Cyber Security Framework, CERT-In directions, and IT risk management.",
+  "applies_to": ["Bank", "NBFC", "Payment System Operator", "Regulated Entity"],
+  "obligation_additions": [
+    {
+      "id": "CO-001",
+      "name": "cyber_incident_initial_report",
+      "trigger_phrases": ["shall report the cyber incident", "initial report within", "within six hours", "shall notify cert-in"],
+      "domain": "Cybersecurity",
+      "obligation_type": "mandatory",
+      "sub_type": "incident_reporting",
+      "deadline": {"text": "within 6 hours", "duration": "6 hours", "urgency": "immediate"},
+      "severity": "critical",
+      "departments": ["Cybersecurity", "IT", "Compliance"]
+    },
+    {
+      "id": "CO-002",
+      "name": "cyber_incident_detailed_report",
+      "trigger_phrases": ["detailed report within", "root cause analysis", "final incident report", "within 72 hours"],
+      "domain": "Cybersecurity",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "deadline": {"text": "within 72 hours", "duration": "72 hours", "urgency": "immediate"},
+      "severity": "critical",
+      "departments": ["Cybersecurity", "IT", "Compliance"]
+    },
+    {
+      "id": "CO-003",
+      "name": "patch_management",
+      "trigger_phrases": ["security patch", "shall apply patches", "patch within", "vulnerability management"],
+      "domain": "Cybersecurity",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "high",
+      "departments": ["IT", "Cybersecurity"]
+    },
+    {
+      "id": "CO-004",
+      "name": "vapt_annual",
+      "trigger_phrases": ["vulnerability assessment", "penetration testing", "vapt", "at least once a year", "annual security audit"],
+      "domain": "Cybersecurity",
+      "obligation_type": "mandatory",
+      "sub_type": "audit",
+      "severity": "high",
+      "departments": ["Cybersecurity", "IT", "InternalAudit"]
+    },
+    {
+      "id": "CO-005",
+      "name": "soc_establishment",
+      "trigger_phrases": ["security operations centre", "soc", "24x7 monitoring", "shall establish a soc"],
+      "domain": "Cybersecurity",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "high",
+      "departments": ["Cybersecurity", "IT"]
+    },
+    {
+      "id": "CO-006",
+      "name": "is_policy",
+      "trigger_phrases": ["information security policy", "is policy", "board approved is policy", "cyber security policy"],
+      "domain": "Cybersecurity",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "severity": "high",
+      "departments": ["Cybersecurity", "IT", "Compliance"]
+    },
+    {
+      "id": "CO-007",
+      "name": "third_party_audit",
+      "trigger_phrases": ["is audit by third party", "third party audit", "external audit of it systems"],
+      "domain": "Cybersecurity",
+      "obligation_type": "mandatory",
+      "sub_type": "audit",
+      "severity": "medium",
+      "departments": ["Cybersecurity", "InternalAudit", "IT"]
+    },
+    {
+      "id": "CO-008",
+      "name": "data_localisation",
+      "trigger_phrases": ["data shall be stored only in india", "data localisation", "no storage of payment data outside india"],
+      "domain": "DataPrivacy",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "critical",
+      "departments": ["IT", "Compliance", "Legal"]
+    },
+    {
+      "id": "CO-009",
+      "name": "bcp_dr_drill",
+      "trigger_phrases": ["dr drill", "disaster recovery drill", "business continuity test", "bcp test", "shall conduct dr drill"],
+      "domain": "BusinessContinuity",
+      "obligation_type": "mandatory",
+      "sub_type": "business_continuity",
+      "severity": "high",
+      "departments": ["IT", "Operations", "Compliance"]
+    }
+  ]
+}

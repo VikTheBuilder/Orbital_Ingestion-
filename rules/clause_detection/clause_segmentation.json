@@ -1,0 +1,189 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Regex patterns for segmenting RBI regulatory text into discrete clauses. Ordered by specificity.",
+  "rules": [
+    {
+      "id": "CS-001",
+      "name": "numeric_dot_clause",
+      "pattern": "^(\\d+\\.\\d+(?:\\.\\d+)*)\\s+",
+      "match_type": "regex",
+      "level": 2,
+      "example": "3.1 Banks shall maintain...",
+      "notes": "Multi-level numeric clause (3.1, 3.1.1, 3.1.1.1)"
+    },
+    {
+      "id": "CS-002",
+      "name": "top_level_numeric",
+      "pattern": "^(\\d+)\\.\\s+[A-Z]",
+      "match_type": "regex",
+      "level": 1,
+      "example": "3. Applicability"
+    },
+    {
+      "id": "CS-003",
+      "name": "alphanumeric_clause",
+      "pattern": "^([A-Za-z]?\\d+[A-Z]?)\\.",
+      "match_type": "regex",
+      "level": 2,
+      "example": "121A. A bank shall...",
+      "notes": "Common in Banking Regulation Act style — 121A, 121B, 56B"
+    },
+    {
+      "id": "CS-004",
+      "name": "parenthetical_alpha",
+      "pattern": "^\\(([a-z]{1,3})\\)",
+      "match_type": "regex",
+      "level": 3,
+      "example": "(a) Banks shall ensure..."
+    },
+    {
+      "id": "CS-005",
+      "name": "roman_numeral_sub",
+      "pattern": "^\\(([ivxlcdm]+)\\)",
+      "match_type": "regex",
+      "level": 4,
+      "example": "(i) The bank shall submit...",
+      "notes": "Roman numeral sub-clauses common in RBI Master Directions"
+    },
+    {
+      "id": "CS-006",
+      "name": "roman_numeral_inline",
+      "pattern": "^([IVXLCDMivxlcdm]+)\\.",
+      "match_type": "regex",
+      "level": 3,
+      "example": "I. Definitions"
+    },
+    {
+      "id": "CS-007",
+      "name": "annexure",
+      "pattern": "^Annexure(?:\\s+[-–]?\\s*)?([A-Z]{1,3}|\\d{1,2})(?:\\.)?\\s",
+      "match_type": "regex",
+      "level": 0,
+      "clause_type": "other",
+      "example": "Annexure I — Format for reporting..."
+    },
+    {
+      "id": "CS-008",
+      "name": "schedule",
+      "pattern": "^Schedule(?:\\s+[-–]?\\s*)?([A-Z]{1,3}|\\d{1,2}|[IVX]+)(?:\\.)?\\s",
+      "match_type": "regex",
+      "level": 0,
+      "clause_type": "other",
+      "example": "Schedule II — List of designated entities"
+    },
+    {
+      "id": "CS-009",
+      "name": "section_header",
+      "pattern": "^(?:Section|Part|Chapter)\\s+([A-Z]{1,3}|\\d{1,2}|[IVX]+)(?:\\s*[-–:.])\\s",
+      "match_type": "regex",
+      "level": 1,
+      "example": "Section A — General"
+    },
+    {
+      "id": "CS-010",
+      "name": "paragraph_number",
+      "pattern": "^Para(?:graph)?\\s+(\\d+(?:\\.\\d+)*)\\s*[-:.]",
+      "match_type": "regex",
+      "level": 2,
+      "example": "Para 3.2 – Applicability"
+    },
+    {
+      "id": "CS-011",
+      "name": "table_header",
+      "pattern": "^(?:Table|Statement|Format)\\s+[A-Z0-9]+",
+      "match_type": "regex",
+      "level": 0,
+      "clause_type": "other",
+      "example": "Table 1 — Reporting format"
+    },
+    {
+      "id": "CS-012",
+      "name": "footnote",
+      "pattern": "^\\*+\\s|^\\d+\\)\\s",
+      "match_type": "regex",
+      "level": 5,
+      "clause_type": "other",
+      "example": "* This clause applies to all SCBs"
+    },
+    {
+      "id": "CS-013",
+      "name": "proviso",
+      "pattern": "\\bProvided\\s+(?:that\\s+)?(?:where|if|the)",
+      "match_type": "regex",
+      "level": 4,
+      "clause_type": "conditional",
+      "example": "Provided that where the customer fails to...",
+      "notes": "Proviso clauses create conditional obligations — always extract separately."
+    },
+    {
+      "id": "CS-014",
+      "name": "explanation",
+      "pattern": "^Explanation(?:\\s+\\d+)?[-:.]",
+      "match_type": "regex",
+      "level": 4,
+      "clause_type": "definition",
+      "example": "Explanation 1: For the purpose of this direction..."
+    },
+    {
+      "id": "CS-015",
+      "name": "definition_marker",
+      "pattern": "\\bmeans\\b|\\bincludes\\b|\\bshall\\s+mean\\b|\\bshall\\s+include\\b",
+      "match_type": "regex",
+      "level": 3,
+      "clause_type": "definition",
+      "example": "\"Regulated Entity\" means a bank or NBFC..."
+    }
+  ],
+  "clause_type_classifiers": [
+    {
+      "id": "CT-001",
+      "clause_type": "obligation",
+      "trigger_words": ["shall", "must", "required to", "is obligated", "is mandated"],
+      "weight": 1.0
+    },
+    {
+      "id": "CT-002",
+      "clause_type": "permission",
+      "trigger_words": ["may", "at its discretion", "may at its option", "permitted to"],
+      "weight": 0.9
+    },
+    {
+      "id": "CT-003",
+      "clause_type": "prohibition",
+      "trigger_words": ["shall not", "must not", "not permitted", "prohibited from"],
+      "weight": 1.0
+    },
+    {
+      "id": "CT-004",
+      "clause_type": "definition",
+      "trigger_words": ["means", "includes", "shall mean", "shall include", "defined as"],
+      "weight": 0.9
+    },
+    {
+      "id": "CT-005",
+      "clause_type": "penalty",
+      "trigger_words": ["penalty", "fine", "prosecution", "imprisonment", "monetary penalty", "levied"],
+      "weight": 1.0
+    },
+    {
+      "id": "CT-006",
+      "clause_type": "cross_reference",
+      "trigger_words": ["as per", "in accordance with", "refer to", "as specified in", "as directed by"],
+      "weight": 0.85
+    },
+    {
+      "id": "CT-007",
+      "clause_type": "effective_date",
+      "trigger_words": ["with effect from", "come into force", "come into effect", "shall be applicable from"],
+      "weight": 1.0
+    },
+    {
+      "id": "CT-008",
+      "clause_type": "quoted_reference",
+      "trigger_words": ["provides as under", "provides as follows", "reads as under", "reads as follows", "states as under", "states as follows", "stipulates as under", "stipulates as follows", "is reproduced below", "is extracted below", "is quoted below"],
+      "weight": 1.1,
+      "notes": "Background quotation of pre-existing law cited for context — not a new directive."
+    }
+  ]
+}

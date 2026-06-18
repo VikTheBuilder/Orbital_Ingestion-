@@ -1,0 +1,306 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Obligation type classification rules. Evaluated after trigger verb detection to assign a precise obligation sub-type.",
+  "types": [
+    {
+      "id": "OT-001",
+      "type": "mandatory",
+      "sub_type": "reporting",
+      "description": "Actor must submit a return, report, or statement to RBI or another authority.",
+      "trigger_phrases": [
+        "shall submit",
+        "shall file",
+        "shall furnish",
+        "shall intimate",
+        "shall report",
+        "shall send",
+        "shall forward",
+        "shall provide",
+        "shall communicate",
+        "shall disclose",
+        "shall publish",
+        "shall place on record"
+      ],
+      "destination_patterns": [
+        "\\bto the reserve bank\\b",
+        "\\bto rbi\\b",
+        "\\bto the department of regulation\\b",
+        "\\bto the concerned regional office\\b",
+        "\\bin the prescribed format\\b",
+        "\\bwithin\\s+\\d+\\s+(?:days|weeks|months)\\b"
+      ],
+      "departments": ["Compliance", "InternalAudit"],
+      "severity_floor": "high"
+    },
+    {
+      "id": "OT-002",
+      "type": "mandatory",
+      "sub_type": "approval_required",
+      "description": "Actor must obtain prior approval before undertaking an action.",
+      "trigger_phrases": [
+        "shall obtain prior approval",
+        "with the prior approval",
+        "subject to prior approval",
+        "subject to approval of",
+        "prior written consent",
+        "shall not undertake without",
+        "prior permission of"
+      ],
+      "departments": ["Compliance", "Legal"],
+      "severity_floor": "high"
+    },
+    {
+      "id": "OT-003",
+      "type": "mandatory",
+      "sub_type": "governance",
+      "description": "Board, committee, or senior management must own, approve, or review a policy.",
+      "trigger_phrases": [
+        "board shall",
+        "board of directors shall",
+        "board approved",
+        "board level policy",
+        "shall be placed before the board",
+        "shall constitute a committee",
+        "shall designate",
+        "shall appoint a",
+        "shall frame a policy",
+        "shall formulate",
+        "shall review periodically",
+        "annual review by the board"
+      ],
+      "departments": ["Compliance", "Legal"],
+      "severity_floor": "medium"
+    },
+    {
+      "id": "OT-004",
+      "type": "mandatory",
+      "sub_type": "record_retention",
+      "description": "Actor must maintain, preserve, or retain records for a specified period.",
+      "trigger_phrases": [
+        "shall maintain records",
+        "shall preserve",
+        "shall keep records",
+        "shall retain",
+        "shall be maintained for a period",
+        "records shall be preserved",
+        "documentary evidence shall be maintained"
+      ],
+      "retention_patterns": [
+        "\\bfor a period of\\s+\\d+\\s+years\\b",
+        "\\bfor at least\\s+\\d+\\s+years\\b",
+        "\\bfor ten years\\b",
+        "\\bfor five years\\b"
+      ],
+      "departments": ["Compliance", "Operations", "IT"],
+      "severity_floor": "medium"
+    },
+    {
+      "id": "OT-005",
+      "type": "mandatory",
+      "sub_type": "implementation",
+      "description": "Actor must put in place a system, control, process, or technology.",
+      "trigger_phrases": [
+        "shall put in place",
+        "shall implement",
+        "shall establish",
+        "shall set up",
+        "shall introduce",
+        "shall deploy",
+        "shall activate",
+        "shall install",
+        "shall operationalise"
+      ],
+      "departments": ["Compliance", "IT", "Operations"],
+      "severity_floor": "medium"
+    },
+    {
+      "id": "OT-006",
+      "type": "mandatory",
+      "sub_type": "audit",
+      "description": "Actor must conduct, commission, or place before board an audit.",
+      "trigger_phrases": [
+        "shall conduct an audit",
+        "shall undergo an audit",
+        "shall be subject to audit",
+        "shall be audited",
+        "concurrent audit",
+        "information systems audit",
+        "is audit",
+        "shall carry out audit",
+        "annual audit"
+      ],
+      "departments": ["InternalAudit", "Compliance"],
+      "severity_floor": "medium"
+    },
+    {
+      "id": "OT-007",
+      "type": "mandatory",
+      "sub_type": "customer_protection",
+      "description": "Actor must protect customers from harm, ensure service quality, or disclose charges.",
+      "trigger_phrases": [
+        "shall not levy",
+        "shall waive",
+        "shall not charge",
+        "shall ensure customer",
+        "shall redress",
+        "shall resolve grievance",
+        "shall not discriminate",
+        "shall provide free",
+        "shall offer",
+        "right of the customer",
+        "shall credit within",
+        "shall compensate"
+      ],
+      "departments": ["CustomerService", "RetailBanking", "Compliance"],
+      "severity_floor": "high"
+    },
+    {
+      "id": "OT-008",
+      "type": "mandatory",
+      "sub_type": "kyc_due_diligence",
+      "description": "Actor must verify customer identity, update KYC records, or perform enhanced due diligence.",
+      "trigger_phrases": [
+        "shall conduct customer due diligence",
+        "shall carry out cdd",
+        "shall verify",
+        "shall obtain",
+        "shall identify",
+        "shall update kyc",
+        "shall perform enhanced due diligence",
+        "shall apply edd",
+        "shall not open",
+        "shall re-kyc"
+      ],
+      "departments": ["AML_KYC", "Operations"],
+      "severity_floor": "high"
+    },
+    {
+      "id": "OT-009",
+      "type": "mandatory",
+      "sub_type": "incident_reporting",
+      "description": "Actor must report a cybersecurity incident, fraud, or other event to RBI within a stipulated time.",
+      "trigger_phrases": [
+        "shall report the incident",
+        "shall immediately report",
+        "shall notify rbi",
+        "shall intimate rbi",
+        "incident report shall be submitted",
+        "shall file a report with",
+        "shall report within"
+      ],
+      "departments": ["Cybersecurity", "IT", "Compliance"],
+      "severity_floor": "critical"
+    },
+    {
+      "id": "OT-010",
+      "type": "prohibition",
+      "sub_type": "prohibited_activity",
+      "description": "Actor is explicitly barred from performing an action.",
+      "trigger_phrases": [
+        "shall not",
+        "must not",
+        "no bank shall",
+        "no regulated entity shall",
+        "is prohibited from",
+        "not permitted to",
+        "shall refrain from",
+        "shall not engage in",
+        "shall not accept",
+        "shall not lend"
+      ],
+      "departments": ["Compliance", "Legal"],
+      "severity_floor": "high"
+    },
+    {
+      "id": "OT-011",
+      "type": "discretionary",
+      "sub_type": "permitted_activity",
+      "description": "Actor is permitted but not required to perform an action.",
+      "trigger_phrases": [
+        "may",
+        "at its discretion",
+        "may at its option",
+        "may consider",
+        "may permit",
+        "may allow",
+        "may provide",
+        "may grant"
+      ],
+      "departments": [],
+      "severity_floor": "low"
+    },
+    {
+      "id": "OT-012",
+      "type": "conditional",
+      "sub_type": "conditional_obligation",
+      "description": "Obligation is triggered only when a stated condition is met.",
+      "trigger_phrases": [
+        "in case of",
+        "in the event of",
+        "where",
+        "if",
+        "subject to",
+        "provided that",
+        "in the case where",
+        "on the occurrence of",
+        "upon declaration of"
+      ],
+      "departments": ["Compliance"],
+      "severity_floor": "medium"
+    },
+    {
+      "id": "OT-013",
+      "type": "mandatory",
+      "sub_type": "capital_adequacy",
+      "description": "Actor must maintain capital ratios, buffers, or compute risk-weighted assets.",
+      "trigger_phrases": [
+        "shall maintain a capital adequacy ratio",
+        "shall maintain crar",
+        "shall maintain cet1",
+        "minimum capital requirement",
+        "shall not fall below",
+        "capital conservation buffer",
+        "leverage ratio shall"
+      ],
+      "departments": ["RiskManagement", "Finance"],
+      "severity_floor": "critical"
+    },
+    {
+      "id": "OT-014",
+      "type": "mandatory",
+      "sub_type": "outsourcing",
+      "description": "Actor must ensure outsourced activities meet regulatory standards and conduct due diligence on vendors.",
+      "trigger_phrases": [
+        "shall not outsource",
+        "before outsourcing",
+        "outsourcing agreement shall",
+        "due diligence on the service provider",
+        "exit strategy",
+        "shall monitor the service provider",
+        "shall ensure the outsourced"
+      ],
+      "departments": ["Compliance", "Legal", "IT", "Operations"],
+      "severity_floor": "medium"
+    },
+    {
+      "id": "OT-015",
+      "type": "mandatory",
+      "sub_type": "business_continuity",
+      "description": "Actor must maintain or test BCP, DRP, or operate under disaster conditions.",
+      "trigger_phrases": [
+        "business continuity plan",
+        "disaster recovery plan",
+        "shall test the bcp",
+        "shall conduct a dr drill",
+        "recovery time objective",
+        "rto",
+        "recovery point objective",
+        "rpo",
+        "shall resume operations within"
+      ],
+      "departments": ["IT", "Operations", "Compliance"],
+      "severity_floor": "high"
+    }
+  ]
+}

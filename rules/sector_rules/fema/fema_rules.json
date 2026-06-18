@@ -1,0 +1,71 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "FEMA-specific rules for Authorised Dealers, ECB borrowers, and foreign exchange transactions.",
+  "applies_to": ["Authorised Dealer Category I Bank", "Authorised Dealer", "AD Category I"],
+  "domain_keyword_additions": {
+    "FEMA": [
+      "loan registration number", "lrn", "form ecb", "ecb 2 return",
+      "form fc-gpr", "form fc-trs", "form odi",
+      "annual performance report", "apr", "transfer of shares",
+      "compounding", "regularisation", "contraventions",
+      "rupee drawing arrangement", "rda",
+      "money transfer service scheme", "mtss",
+      "nostro reconciliation", "vostro",
+      "import payments", "advance remittance", "usance",
+      "trade credit", "buyers credit", "suppliers credit"
+    ]
+  },
+  "obligation_additions": [
+    {
+      "id": "FO-001",
+      "name": "ecb_reporting",
+      "trigger_phrases": ["shall file form ecb", "ecb 2 return", "loan registration number", "shall report ecb"],
+      "domain": "FEMA",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "severity": "high",
+      "departments": ["Treasury", "Compliance", "Finance"]
+    },
+    {
+      "id": "FO-002",
+      "name": "fdi_reporting",
+      "trigger_phrases": ["form fc-gpr", "form fc-trs", "shall report fdi", "advance reporting form"],
+      "domain": "FEMA",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "severity": "high",
+      "departments": ["Treasury", "Legal", "Compliance"]
+    },
+    {
+      "id": "FO-003",
+      "name": "lrs_monitoring",
+      "trigger_phrases": ["liberalised remittance scheme", "lrs", "usd 250,000", "annual limit"],
+      "domain": "FEMA",
+      "obligation_type": "mandatory",
+      "sub_type": "compliance",
+      "severity": "medium",
+      "departments": ["Treasury", "Operations", "Compliance"]
+    },
+    {
+      "id": "FO-004",
+      "name": "nostro_reconciliation",
+      "trigger_phrases": ["nostro account reconciliation", "shall reconcile", "within five days"],
+      "domain": "FEMA",
+      "obligation_type": "mandatory",
+      "sub_type": "record_retention",
+      "severity": "high",
+      "departments": ["Treasury", "Operations"]
+    },
+    {
+      "id": "FO-005",
+      "name": "apr_filing",
+      "trigger_phrases": ["annual performance report", "apr", "shall submit apr", "overseas investment"],
+      "domain": "FEMA",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "severity": "high",
+      "departments": ["Treasury", "Compliance", "Finance"]
+    }
+  ]
+}

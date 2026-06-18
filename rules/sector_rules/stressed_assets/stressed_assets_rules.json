@@ -1,0 +1,59 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Stressed assets, NPA recognition, restructuring, and IBC-related obligation rules.",
+  "applies_to": ["Scheduled Commercial Bank", "NBFC", "Bank"],
+  "domain_keyword_additions": {
+    "CapitalAdequacy": [
+      "special mention account", "sma", "sma-0", "sma-1", "sma-2",
+      "npa recognition", "sub-standard", "doubtful", "loss asset",
+      "provisioning", "one time settlement", "ots",
+      "resolution plan", "ibc", "insolvency", "nclt",
+      "ibc moratorium", "corporate insolvency resolution process", "cirp",
+      "write-off", "technical write-off", "restructuring"
+    ]
+  },
+  "obligation_additions": [
+    {
+      "id": "SA-001",
+      "name": "sma_reporting",
+      "trigger_phrases": ["special mention account", "sma classification", "shall classify as sma", "overdue"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "severity": "high",
+      "departments": ["RiskManagement", "Compliance", "Operations"]
+    },
+    {
+      "id": "SA-002",
+      "name": "npa_provisioning",
+      "trigger_phrases": ["shall make provision", "provision for npa", "provision coverage", "provisioning norms"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "capital_adequacy",
+      "severity": "high",
+      "departments": ["Finance", "RiskManagement", "Compliance"]
+    },
+    {
+      "id": "SA-003",
+      "name": "crilc_reporting",
+      "trigger_phrases": ["crilc", "central repository of information on large credits", "shall report to crilc"],
+      "domain": "ReportingAudit",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "deadline": {"text": "monthly", "frequency": "monthly", "urgency": "ongoing"},
+      "severity": "high",
+      "departments": ["Compliance", "RiskManagement", "Finance"]
+    },
+    {
+      "id": "SA-004",
+      "name": "resolution_framework",
+      "trigger_phrases": ["resolution plan", "shall implement resolution", "resolution framework", "30-day review period"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "high",
+      "departments": ["RiskManagement", "Legal", "Finance", "Compliance"]
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "source_authority": "IRDAI",
+  "description": "Actor detection rules specific to IRDAI (insurance regulatory) documents. These patterns are source-scoped to IRDAI only.",
+  "rules": [
+    {
+      "id": "ACT-IRDAI-001",
+      "pattern": "\\binsurance compan(?:y|ies)\\b",
+      "match_type": "regex",
+      "canonical_actor": "Insurer",
+      "actor_category": "insurer",
+      "weight": 0.95,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-002",
+      "pattern": "\\blife insur(?:er|ance)(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Life Insurer",
+      "actor_category": "insurer",
+      "weight": 1.0,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-003",
+      "pattern": "\\bgeneral insur(?:er|ance)(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "General Insurer",
+      "actor_category": "insurer",
+      "weight": 1.0,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-004",
+      "pattern": "\\bhealth insur(?:er|ance)(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Health Insurer",
+      "actor_category": "insurer",
+      "weight": 1.0,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-005",
+      "pattern": "\\bthe insurer(?:s)?\\b|\\ball insurers\\b|\\ban insurer\\b",
+      "match_type": "regex",
+      "canonical_actor": "Insurer",
+      "actor_category": "insurer",
+      "weight": 0.9,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-006",
+      "pattern": "\\breinsurer(?:s)?\\b|\\bthe reinsurer(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Reinsurer",
+      "actor_category": "reinsurer",
+      "weight": 1.0,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-007",
+      "pattern": "\\bgic\\s*re\\b|\\bgeneral insurance corporation\\b",
+      "match_type": "regex",
+      "canonical_actor": "GIC Re",
+      "actor_category": "reinsurer",
+      "weight": 1.0,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-008",
+      "pattern": "\\bfrb(?:s)?(?:/reinsurer(?:s)?)?\\b|\\bforeign reinsurance branch(?:es)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "FRBs/Reinsurers",
+      "actor_category": "reinsurer",
+      "weight": 1.05,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-009",
+      "pattern": "\\bpolicyholder(?:s)?\\b|\\bpolicy\\s*holder(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Policyholder",
+      "actor_category": "customer",
+      "weight": 0.8,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-010",
+      "pattern": "\\bappointed actuary\\b|\\bthe actuary\\b",
+      "match_type": "regex",
+      "canonical_actor": "Appointed Actuary",
+      "actor_category": "senior_management",
+      "weight": 1.0,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-011",
+      "pattern": "\\bthird.party administrator(?:s)?\\b|\\btpa(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Third Party Administrator",
+      "actor_category": "third_party",
+      "weight": 0.9,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-012",
+      "pattern": "\\binsurance broker(?:s)?\\b|\\bcomposite broker(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Insurance Broker",
+      "actor_category": "intermediary",
+      "weight": 0.9,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-013",
+      "pattern": "\\bcorporate agent(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Corporate Agent",
+      "actor_category": "intermediary",
+      "weight": 0.9,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-014",
+      "pattern": "\\binsurance surveyor(?:s)?\\b|\\bsurveyor and loss assessor(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Insurance Surveyor",
+      "actor_category": "intermediary",
+      "weight": 0.9,
+      "source_scope": ["IRDAI"]
+    },
+    {
+      "id": "ACT-IRDAI-015",
+      "pattern": "\\birdai\\b|\\binsurance regulatory and development authority\\b|\\bthe authority\\b",
+      "match_type": "regex",
+      "canonical_actor": "IRDAI",
+      "actor_category": "regulator",
+      "weight": 1.0,
+      "source_scope": ["IRDAI"],
+      "notes": "When IRDAI is the actor, it is usually issuing a directive — the obligation falls on the regulated entity reading the document."
+    }
+  ]
+}

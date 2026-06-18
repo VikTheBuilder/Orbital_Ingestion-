@@ -1,0 +1,59 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Customer service, grievance redressal, ombudsman, and fair practices rules.",
+  "applies_to": ["Bank", "NBFC", "Payment System Operator", "Regulated Entity"],
+  "obligation_additions": [
+    {
+      "id": "CS-001",
+      "name": "complaint_resolution_timeline",
+      "trigger_phrases": ["shall resolve the complaint within 30 days", "shall respond to complaint", "complaint resolution", "turnaround time for complaints"],
+      "domain": "CustomerService",
+      "obligation_type": "mandatory",
+      "sub_type": "customer_protection",
+      "deadline": {"text": "within 30 days", "duration": "30 days", "urgency": "short_term"},
+      "severity": "high",
+      "departments": ["CustomerService", "Compliance"]
+    },
+    {
+      "id": "CS-002",
+      "name": "no_charges_basic_services",
+      "trigger_phrases": ["shall not charge", "shall not levy", "free of charge", "no fee for"],
+      "domain": "CustomerService",
+      "obligation_type": "mandatory",
+      "sub_type": "prohibited_activity",
+      "severity": "high",
+      "departments": ["RetailBanking", "Finance", "Compliance"]
+    },
+    {
+      "id": "CS-003",
+      "name": "key_fact_statement",
+      "trigger_phrases": ["key fact statement", "kfs", "shall provide kfs", "most important terms and conditions", "mitc"],
+      "domain": "CustomerService",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "medium",
+      "departments": ["RetailBanking", "Legal", "Compliance"]
+    },
+    {
+      "id": "CS-004",
+      "name": "doorstep_banking",
+      "trigger_phrases": ["doorstep banking", "door step banking services", "senior citizen", "differently abled"],
+      "domain": "CustomerService",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "medium",
+      "departments": ["BranchNetwork", "Operations", "CustomerService"]
+    },
+    {
+      "id": "CS-005",
+      "name": "grievance_officer_designation",
+      "trigger_phrases": ["grievance redressal officer", "nodal officer for complaints", "shall designate a nodal officer"],
+      "domain": "CustomerService",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "severity": "medium",
+      "departments": ["CustomerService", "Compliance"]
+    }
+  ]
+}

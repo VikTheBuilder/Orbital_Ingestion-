@@ -1,0 +1,200 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Severity assignment rules. Evaluated in order — highest matching rule wins.",
+  "levels": {
+    "critical": "Immediate action required. Regulatory penalty, customer harm, or systemic risk if missed.",
+    "high": "Must act within 30 days. Significant operational or regulatory impact.",
+    "medium": "Must act within 90 days. Process or control update needed.",
+    "low": "Informational, discretionary, or very long timeline."
+  },
+  "rules": [
+    {
+      "id": "SEV-001",
+      "severity": "critical",
+      "conditions": {
+        "urgency": ["immediate"],
+        "description": "Any obligation with immediate urgency is critical by default."
+      },
+      "weight": 1.0
+    },
+    {
+      "id": "SEV-002",
+      "severity": "critical",
+      "conditions": {
+        "sub_type": ["incident_reporting"],
+        "description": "Cyber incident and fraud incident reporting — always critical."
+      },
+      "weight": 1.0
+    },
+    {
+      "id": "SEV-003",
+      "severity": "critical",
+      "conditions": {
+        "keywords": ["penalty", "prosecution", "criminal", "imprisonment", "monetary penalty"],
+        "description": "Clause that references a regulatory penalty for non-compliance."
+      },
+      "weight": 1.0
+    },
+    {
+      "id": "SEV-004",
+      "severity": "critical",
+      "conditions": {
+        "keywords": ["customer safety", "customer harm", "loss of customer funds"],
+        "description": "Customer safety or financial loss obligations."
+      },
+      "weight": 1.0
+    },
+    {
+      "id": "SEV-005",
+      "severity": "critical",
+      "conditions": {
+        "domain": ["CapitalAdequacy"],
+        "keywords": ["minimum capital", "crar", "cet1 falls below", "breach"],
+        "description": "Capital adequacy breach — systemic risk."
+      },
+      "weight": 1.0
+    },
+    {
+      "id": "SEV-006",
+      "severity": "critical",
+      "conditions": {
+        "domain": ["Cybersecurity"],
+        "keywords": ["critical", "material breach", "ransomware", "data breach", "system compromise"],
+        "description": "Material cybersecurity incident."
+      },
+      "weight": 1.0
+    },
+    {
+      "id": "SEV-007",
+      "severity": "high",
+      "conditions": {
+        "urgency": ["short_term"],
+        "description": "Short-term deadline (within 30 days) — high by default."
+      },
+      "weight": 1.0
+    },
+    {
+      "id": "SEV-008",
+      "severity": "high",
+      "conditions": {
+        "sub_type": ["reporting"],
+        "urgency": ["short_term", "medium_term"],
+        "description": "Regulatory reporting with a short or medium deadline."
+      },
+      "weight": 0.95
+    },
+    {
+      "id": "SEV-009",
+      "severity": "high",
+      "conditions": {
+        "sub_type": ["customer_protection"],
+        "description": "Customer protection obligations are high severity."
+      },
+      "weight": 0.9
+    },
+    {
+      "id": "SEV-010",
+      "severity": "high",
+      "conditions": {
+        "sub_type": ["kyc_due_diligence"],
+        "keywords": ["enhanced due diligence", "edd", "pep", "sanctions", "high risk"],
+        "description": "Enhanced KYC/AML obligations for high-risk customers."
+      },
+      "weight": 0.9
+    },
+    {
+      "id": "SEV-011",
+      "severity": "high",
+      "conditions": {
+        "sub_type": ["prohibited_activity"],
+        "description": "Prohibition on an activity — violating carries regulatory risk."
+      },
+      "weight": 0.9
+    },
+    {
+      "id": "SEV-012",
+      "severity": "high",
+      "conditions": {
+        "domain": ["FraudManagement"],
+        "keywords": ["report fraud", "lodge complaint", "notify rbi"],
+        "description": "Fraud reporting obligation."
+      },
+      "weight": 0.9
+    },
+    {
+      "id": "SEV-013",
+      "severity": "medium",
+      "conditions": {
+        "urgency": ["medium_term"],
+        "obligation_type": ["mandatory"],
+        "description": "Mandatory obligation with medium-term deadline."
+      },
+      "weight": 0.85
+    },
+    {
+      "id": "SEV-014",
+      "severity": "medium",
+      "conditions": {
+        "sub_type": ["governance"],
+        "description": "Governance obligations — board policies, committee constitutions."
+      },
+      "weight": 0.8
+    },
+    {
+      "id": "SEV-015",
+      "severity": "medium",
+      "conditions": {
+        "sub_type": ["audit"],
+        "description": "Audit obligations — annual or periodic."
+      },
+      "weight": 0.8
+    },
+    {
+      "id": "SEV-016",
+      "severity": "medium",
+      "conditions": {
+        "sub_type": ["record_retention"],
+        "description": "Record retention — process compliance but low urgency."
+      },
+      "weight": 0.75
+    },
+    {
+      "id": "SEV-017",
+      "severity": "medium",
+      "conditions": {
+        "sub_type": ["business_continuity"],
+        "description": "BCP/DRP maintenance obligations."
+      },
+      "weight": 0.8
+    },
+    {
+      "id": "SEV-018",
+      "severity": "low",
+      "conditions": {
+        "obligation_type": ["discretionary"],
+        "description": "Discretionary obligation — not mandatory."
+      },
+      "weight": 0.7
+    },
+    {
+      "id": "SEV-019",
+      "severity": "low",
+      "conditions": {
+        "urgency": ["long_term", "ongoing"],
+        "obligation_type": ["recommendation"],
+        "description": "Recommendation with long or ongoing timeline."
+      },
+      "weight": 0.65
+    },
+    {
+      "id": "SEV-020",
+      "severity": "low",
+      "conditions": {
+        "sub_type": ["permitted_activity"],
+        "description": "Permission — actor can but doesn't have to."
+      },
+      "weight": 0.6
+    }
+  ]
+}

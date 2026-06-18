@@ -1,0 +1,287 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Actor detection rules for identifying who bears the obligation. Ordered by specificity — more specific patterns first.",
+  "rules": [
+    {
+      "id": "ACT-001",
+      "pattern": "\\bboard of directors\\b",
+      "match_type": "regex",
+      "canonical_actor": "Board of Directors",
+      "actor_category": "governance",
+      "weight": 1.0
+    },
+    {
+      "id": "ACT-002",
+      "pattern": "\\bboard(?:'s|\\s+level)?\\s+(?:committee|sub-committee)\\b",
+      "match_type": "regex",
+      "canonical_actor": "Board of Directors",
+      "actor_category": "governance",
+      "weight": 0.9
+    },
+    {
+      "id": "ACT-003",
+      "pattern": "\\bchief executive officer\\b|\\bceo\\b",
+      "match_type": "regex",
+      "canonical_actor": "Chief Executive Officer",
+      "actor_category": "senior_management",
+      "weight": 1.0
+    },
+    {
+      "id": "ACT-004",
+      "pattern": "\\bchief compliance officer\\b|\\bcco\\b",
+      "match_type": "regex",
+      "canonical_actor": "Chief Compliance Officer",
+      "actor_category": "senior_management",
+      "weight": 1.0
+    },
+    {
+      "id": "ACT-005",
+      "pattern": "\\bchief information security officer\\b|\\bciso\\b",
+      "match_type": "regex",
+      "canonical_actor": "CISO",
+      "actor_category": "senior_management",
+      "weight": 1.0
+    },
+    {
+      "id": "ACT-006",
+      "pattern": "\\bchief risk officer\\b|\\bcro\\b",
+      "match_type": "regex",
+      "canonical_actor": "Chief Risk Officer",
+      "actor_category": "senior_management",
+      "weight": 1.0
+    },
+    {
+      "id": "ACT-007",
+      "pattern": "\\bmanaging director\\b|\\bmd\\b",
+      "match_type": "regex",
+      "canonical_actor": "Managing Director",
+      "actor_category": "senior_management",
+      "weight": 0.9
+    },
+    {
+      "id": "ACT-008",
+      "pattern": "\\bscheduled commercial bank(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Scheduled Commercial Bank",
+      "actor_category": "bank",
+      "weight": 1.0,
+      "source_scope": ["RBI", "IBA"]
+    },
+    {
+      "id": "ACT-009",
+      "pattern": "\\bpublic sector bank(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Public Sector Bank",
+      "actor_category": "bank",
+      "weight": 1.0,
+      "source_scope": ["RBI", "IBA"]
+    },
+    {
+      "id": "ACT-010",
+      "pattern": "\\bprivate sector bank(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Private Sector Bank",
+      "actor_category": "bank",
+      "weight": 1.0,
+      "source_scope": ["RBI", "IBA"]
+    },
+    {
+      "id": "ACT-011",
+      "pattern": "\\bforeign bank(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Foreign Bank",
+      "actor_category": "bank",
+      "weight": 1.0,
+      "source_scope": ["RBI", "IBA"]
+    },
+    {
+      "id": "ACT-012",
+      "pattern": "\\bco-operative bank(?:s)?\\b|\\bcooperative bank(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Cooperative Bank",
+      "actor_category": "bank",
+      "weight": 1.0,
+      "source_scope": ["RBI", "IBA"]
+    },
+    {
+      "id": "ACT-013",
+      "pattern": "\\bsmall finance bank(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Small Finance Bank",
+      "actor_category": "bank",
+      "weight": 1.0,
+      "source_scope": ["RBI", "IBA"]
+    },
+    {
+      "id": "ACT-014",
+      "pattern": "\\bpayments bank(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Payments Bank",
+      "actor_category": "bank",
+      "weight": 1.0,
+      "source_scope": ["RBI", "IBA", "NPCI"]
+    },
+    {
+      "id": "ACT-015",
+      "pattern": "\\bregional rural bank(?:s)?\\b|\\brrb(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Regional Rural Bank",
+      "actor_category": "bank",
+      "weight": 1.0,
+      "source_scope": ["RBI", "IBA"]
+    },
+    {
+      "id": "ACT-016",
+      "pattern": "\\bnon.banking financial compan(?:y|ies)\\b|\\bnbfc(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "NBFC",
+      "actor_category": "nbfc",
+      "weight": 1.0,
+      "source_scope": ["RBI"]
+    },
+    {
+      "id": "ACT-017",
+      "pattern": "\\bnbfc.mfi(?:s)?\\b|\\bnbfc.micro finance\\b",
+      "match_type": "regex",
+      "canonical_actor": "NBFC-MFI",
+      "actor_category": "nbfc",
+      "weight": 1.0,
+      "source_scope": ["RBI"]
+    },
+    {
+      "id": "ACT-018",
+      "pattern": "\\bhousing finance compan(?:y|ies)\\b|\\bhfc(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Housing Finance Company",
+      "actor_category": "nbfc",
+      "weight": 1.0,
+      "source_scope": ["RBI"]
+    },
+    {
+      "id": "ACT-019",
+      "pattern": "\\bauthorised dealer category.?i(?:i)? bank(?:s)?\\b|\\bad cat(?:egory)?.?i(?:i)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Authorised Dealer Category I Bank",
+      "actor_category": "forex",
+      "weight": 1.0,
+      "source_scope": ["RBI"]
+    },
+    {
+      "id": "ACT-020",
+      "pattern": "\\bpayment system operator(?:s)?\\b|\\bpso(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Payment System Operator",
+      "actor_category": "payments",
+      "weight": 1.0
+    },
+    {
+      "id": "ACT-021",
+      "pattern": "\\bpayment system participant(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Payment System Participant",
+      "actor_category": "payments",
+      "weight": 1.0
+    },
+    {
+      "id": "ACT-022",
+      "pattern": "\\bprepaid payment instrument(?:s)?\\b|\\bppi\\b",
+      "match_type": "regex",
+      "canonical_actor": "PPI Issuer",
+      "actor_category": "payments",
+      "weight": 0.9
+    },
+    {
+      "id": "ACT-023",
+      "pattern": "\\ball regulated entit(?:y|ies)\\b|\\bregulated entit(?:y|ies)\\b|\\ball re\\b",
+      "match_type": "regex",
+      "canonical_actor": "Regulated Entity",
+      "actor_category": "generic",
+      "weight": 0.95
+    },
+    {
+      "id": "ACT-024",
+      "pattern": "\\breserve bank of india\\b|\\bthe reserve bank\\b|\\brbi\\b",
+      "match_type": "regex",
+      "canonical_actor": "RBI",
+      "actor_category": "regulator",
+      "weight": 1.0,
+      "notes": "When RBI is the actor, it is usually issuing a directive — the obligation falls on the regulated entity reading the document."
+    },
+    {
+      "id": "ACT-025",
+      "pattern": "\\bthe bank(?:s)?\\b|\\ba bank(?:s)?\\b|\\bbanks\\b",
+      "match_type": "regex",
+      "canonical_actor": "Bank",
+      "actor_category": "bank",
+      "weight": 0.85,
+      "source_scope": ["RBI", "IBA", "NPCI"]
+    },
+    {
+      "id": "ACT-026",
+      "pattern": "\\bcustomer(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Customer",
+      "actor_category": "customer",
+      "weight": 0.8,
+      "notes": "Low weight — customer obligations usually appear in customer-facing disclosures."
+    },
+    {
+      "id": "ACT-027",
+      "pattern": "\\bborrower(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Borrower",
+      "actor_category": "customer",
+      "weight": 0.8
+    },
+    {
+      "id": "ACT-028",
+      "pattern": "\\bdepositor(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Depositor",
+      "actor_category": "customer",
+      "weight": 0.8
+    },
+    {
+      "id": "ACT-029",
+      "pattern": "\\boutsourced service provider(?:s)?\\b|\\bservice provider(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Outsourced Service Provider",
+      "actor_category": "third_party",
+      "weight": 0.85
+    },
+    {
+      "id": "ACT-030",
+      "pattern": "\\bthird.party service provider(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Third-Party Service Provider",
+      "actor_category": "third_party",
+      "weight": 0.85
+    },
+    {
+      "id": "ACT-031",
+      "pattern": "\\bsystem provider(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "System Provider",
+      "actor_category": "payments",
+      "weight": 0.85
+    },
+    {
+      "id": "ACT-032",
+      "pattern": "\\binternal auditor(?:s)?\\b|\\bstatutory auditor(?:s)?\\b",
+      "match_type": "regex",
+      "canonical_actor": "Auditor",
+      "actor_category": "audit",
+      "weight": 0.9
+    },
+    {
+      "id": "ACT-033",
+      "pattern": "\\bprincipal officer\\b",
+      "match_type": "regex",
+      "canonical_actor": "Principal Officer",
+      "actor_category": "senior_management",
+      "weight": 0.9,
+      "notes": "Specific to PMLA / AML — the designated reporting officer."
+    }
+  ]
+}

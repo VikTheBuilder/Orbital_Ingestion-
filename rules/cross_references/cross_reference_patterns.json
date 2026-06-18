@@ -1,0 +1,127 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Cross-reference detection rules for identifying references to other RBI circulars, master directions, acts, and regulations.",
+  "rules": [
+    {
+      "id": "XR-001",
+      "name": "rbi_circular_reference",
+      "pattern": "(?:RBI|Reserve\\s+Bank\\s+of\\s+India)[^,;.]{0,80}(?:Circular|Direction|Notification|Instruction|Guideline)[^,;.]{0,50}(?:No\\.\\s*)?(?:RBI/\\d{4}-\\d{2,4}/\\d+|[A-Z][A-Z./\\-\\d]+)",
+      "match_type": "regex",
+      "ref_type": "rbi_circular",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-002",
+      "name": "master_direction_reference",
+      "pattern": "Master\\s+Direction(?:s)?\\s+(?:on\\s+|[-–]\\s+)?[A-Za-z ,()]+(?:,\\s+\\d{4})?",
+      "match_type": "regex",
+      "ref_type": "master_direction",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-003",
+      "name": "master_circular_reference",
+      "pattern": "Master\\s+Circular\\s+(?:on\\s+|[-–]\\s+)?[A-Za-z ,()]+(?:,\\s+\\d{4})?",
+      "match_type": "regex",
+      "ref_type": "master_circular",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-004",
+      "name": "fema_reference",
+      "pattern": "FEMA\\s+\\d+(?:\\([A-Z]+\\))?(?:/\\d{4}-RB)?|Foreign\\s+Exchange\\s+Management\\s+Act,?\\s+\\d{4}",
+      "match_type": "regex",
+      "ref_type": "fema_regulation",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-005",
+      "name": "banking_regulation_act",
+      "pattern": "Banking\\s+Regulation\\s+Act,?\\s+(?:1949|\\d{4})|Section\\s+\\d+[A-Z]?\\s+of\\s+the\\s+Banking\\s+Regulation\\s+Act",
+      "match_type": "regex",
+      "ref_type": "banking_regulation_act",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-006",
+      "name": "rbi_act",
+      "pattern": "Reserve\\s+Bank\\s+of\\s+India\\s+Act,?\\s+(?:1934|\\d{4})|Section\\s+\\d+[A-Z]?\\s+of\\s+the\\s+RBI\\s+Act",
+      "match_type": "regex",
+      "ref_type": "rbi_act",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-007",
+      "name": "pmla_reference",
+      "pattern": "Prevention\\s+of\\s+Money\\s+Laundering\\s+Act,?\\s+\\d{4}|PMLA(?:,?\\s+\\d{4})?",
+      "match_type": "regex",
+      "ref_type": "pmla",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-008",
+      "name": "pss_act",
+      "pattern": "Payment\\s+and\\s+Settlement\\s+Systems\\s+Act,?\\s+\\d{4}|PSS\\s+Act",
+      "match_type": "regex",
+      "ref_type": "pss_act",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-009",
+      "name": "companies_act",
+      "pattern": "Companies\\s+Act,?\\s+(?:2013|1956|\\d{4})",
+      "match_type": "regex",
+      "ref_type": "companies_act",
+      "weight": 0.9
+    },
+    {
+      "id": "XR-010",
+      "name": "nbfc_master_direction",
+      "pattern": "(?:Master\\s+Directions?\\s+on\\s+)?(?:Non-Banking\\s+Financial\\s+Compan(?:y|ies)|NBFC)[^,;.]{0,80}(?:Directions?|Regulations?),?\\s+\\d{4}",
+      "match_type": "regex",
+      "ref_type": "nbfc_direction",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-011",
+      "name": "basel_framework",
+      "pattern": "Basel\\s+(?:I{1,3}|II|III|IV)(?:\\s+framework)?|Basel\\s+Committee\\s+on\\s+Banking\\s+Supervision",
+      "match_type": "regex",
+      "ref_type": "basel_framework",
+      "weight": 0.9
+    },
+    {
+      "id": "XR-012",
+      "name": "kyc_master_direction",
+      "pattern": "(?:Master\\s+Direction(?:s)?\\s+[-–]\\s+)?Know\\s+Your\\s+Customer(?:\\s+\\(KYC\\))?(?:\\s+Direction(?:s)?,?\\s+\\d{4})?",
+      "match_type": "regex",
+      "ref_type": "kyc_master_direction",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-013",
+      "name": "cyber_framework_reference",
+      "pattern": "(?:RBI)?\\s*Cyber\\s*Security\\s*Framework(?:\\s+for\\s+[A-Za-z ]+)?(?:,\\s+\\d{4})?",
+      "match_type": "regex",
+      "ref_type": "cyber_framework",
+      "weight": 1.0
+    },
+    {
+      "id": "XR-014",
+      "name": "irac_norms",
+      "pattern": "IRAC\\s+norms|Prudential\\s+Norms\\s+on\\s+Income\\s+Recognition|Income\\s+Recognition(?:,\\s+Asset\\s+Classification)?",
+      "match_type": "regex",
+      "ref_type": "irac_norms",
+      "weight": 0.9
+    },
+    {
+      "id": "XR-015",
+      "name": "ap_dir_series",
+      "pattern": "A\\.P\\.\\s*\\(DIR\\s+Series\\)\\s+Circular\\s+No\\.\\s*\\d+",
+      "match_type": "regex",
+      "ref_type": "fema_circular",
+      "weight": 1.0
+    }
+  ]
+}

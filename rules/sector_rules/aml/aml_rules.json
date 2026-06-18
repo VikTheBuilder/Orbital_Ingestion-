@@ -1,0 +1,80 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "AML/CFT-specific rule pack covering STR, CTR, FATF, sanctions, and wire transfer obligations.",
+  "applies_to": ["Bank", "NBFC", "Payment System Operator", "Principal Officer"],
+  "obligation_additions": [
+    {
+      "id": "AO-001",
+      "name": "str_filing",
+      "trigger_phrases": ["suspicious transaction report", "str", "shall report suspicious", "shall file str"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "deadline": {"text": "within 7 days", "duration": "7 days", "urgency": "short_term"},
+      "severity": "critical",
+      "departments": ["AML_KYC", "Compliance", "FraudManagement"]
+    },
+    {
+      "id": "AO-002",
+      "name": "ctr_filing",
+      "trigger_phrases": ["cash transaction report", "ctr", "transactions above rs. 10 lakh", "cash transaction exceeding"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "deadline": {"text": "within 15 days", "duration": "15 days", "urgency": "short_term"},
+      "severity": "high",
+      "departments": ["AML_KYC", "Compliance", "Operations"]
+    },
+    {
+      "id": "AO-003",
+      "name": "sanctions_screening",
+      "trigger_phrases": ["shall screen", "uapa", "sanctions list", "designated entities", "un security council"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "compliance",
+      "severity": "critical",
+      "departments": ["AML_KYC", "Compliance", "Operations"]
+    },
+    {
+      "id": "AO-004",
+      "name": "wire_transfer_originator_info",
+      "trigger_phrases": ["wire transfer", "cross-border transfer", "originator information", "beneficiary information", "shall include name and address"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "compliance",
+      "severity": "high",
+      "departments": ["AML_KYC", "Operations", "Treasury"]
+    },
+    {
+      "id": "AO-005",
+      "name": "aml_programme",
+      "trigger_phrases": ["anti-money laundering programme", "aml programme", "shall adopt policies and procedures", "internal controls for aml"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "severity": "high",
+      "departments": ["AML_KYC", "Compliance", "InternalAudit"]
+    },
+    {
+      "id": "AO-006",
+      "name": "principal_officer_designation",
+      "trigger_phrases": ["principal officer", "shall designate a principal officer", "responsible for pmla"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "severity": "high",
+      "departments": ["AML_KYC", "Compliance"]
+    },
+    {
+      "id": "AO-007",
+      "name": "record_retention_aml",
+      "trigger_phrases": ["shall preserve records", "for a period of ten years", "for a period of five years", "retain aml records"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "record_retention",
+      "severity": "high",
+      "departments": ["AML_KYC", "Operations", "IT"]
+    }
+  ]
+}

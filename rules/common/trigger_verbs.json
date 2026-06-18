@@ -1,0 +1,315 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Obligation trigger verbs and modal phrases used across all RBI regulatory documents",
+  "rules": [
+    {
+      "id": "TV-001",
+      "pattern": "\\bshall\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "weight": 1.0,
+      "notes": "Core mandatory modal in Indian regulatory drafting. Always creates a hard obligation."
+    },
+    {
+      "id": "TV-002",
+      "pattern": "\\bshall ensure\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "weight": 1.0,
+      "notes": "Stronger form — actor must guarantee an outcome, not just perform an act."
+    },
+    {
+      "id": "TV-003",
+      "pattern": "\\bshall submit\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-004",
+      "pattern": "\\bshall report\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-005",
+      "pattern": "\\bshall maintain\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "record_retention",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-006",
+      "pattern": "\\bshall obtain\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "approval_required",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-007",
+      "pattern": "\\bshall intimate\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-008",
+      "pattern": "\\bshall notify\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-009",
+      "pattern": "\\bshall put in place\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-010",
+      "pattern": "\\bshall formulate\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-011",
+      "pattern": "\\bshall frame\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-012",
+      "pattern": "\\bshall constitute\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-013",
+      "pattern": "\\bshall appoint\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-014",
+      "pattern": "\\bshall designate\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-015",
+      "pattern": "\\bshall review\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-016",
+      "pattern": "\\bshall conduct\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-017",
+      "pattern": "\\bshall carry out\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-018",
+      "pattern": "\\bshall implement\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-019",
+      "pattern": "\\bshall comply\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "compliance",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-020",
+      "pattern": "\\bshall adhere\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "sub_type": "compliance",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-021",
+      "pattern": "\\bshall not\\b",
+      "match_type": "regex",
+      "obligation_type": "prohibition",
+      "weight": 1.0,
+      "notes": "Prohibition — actor is explicitly barred from the action that follows."
+    },
+    {
+      "id": "TV-022",
+      "pattern": "\\bshall refrain from\\b",
+      "match_type": "regex",
+      "obligation_type": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-023",
+      "pattern": "\\bmust\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "weight": 0.95,
+      "notes": "Less common than shall in RBI drafting; treated as mandatory."
+    },
+    {
+      "id": "TV-024",
+      "pattern": "\\bmust not\\b",
+      "match_type": "regex",
+      "obligation_type": "prohibition",
+      "weight": 0.95
+    },
+    {
+      "id": "TV-025",
+      "pattern": "\\bis required to\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "weight": 0.9
+    },
+    {
+      "id": "TV-026",
+      "pattern": "\\bare required to\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "weight": 0.9
+    },
+    {
+      "id": "TV-027",
+      "pattern": "\\bis obligated to\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "weight": 0.9
+    },
+    {
+      "id": "TV-028",
+      "pattern": "\\bis mandated to\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "weight": 0.9
+    },
+    {
+      "id": "TV-029",
+      "pattern": "\\bmay\\b",
+      "match_type": "regex",
+      "obligation_type": "discretionary",
+      "weight": 0.8,
+      "notes": "Discretionary permission. Must be context-checked — sometimes used near RBI directives meaning the bank CAN do X, not that it MUST."
+    },
+    {
+      "id": "TV-030",
+      "pattern": "\\bat its discretion\\b",
+      "match_type": "regex",
+      "obligation_type": "discretionary",
+      "weight": 0.85
+    },
+    {
+      "id": "TV-031",
+      "pattern": "\\bsubject to prior approval\\b",
+      "match_type": "regex",
+      "obligation_type": "approval_required",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-032",
+      "pattern": "\\bwith the prior approval of\\b",
+      "match_type": "regex",
+      "obligation_type": "approval_required",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-033",
+      "pattern": "\\bsubject to approval of(?:\\s+the)?\\s+Reserve Bank\\b",
+      "match_type": "regex",
+      "obligation_type": "approval_required",
+      "weight": 1.0
+    },
+    {
+      "id": "TV-034",
+      "pattern": "\\bshould\\b",
+      "match_type": "regex",
+      "obligation_type": "recommendation",
+      "weight": 0.7,
+      "notes": "Weaker than shall — treat as recommendation unless context elevates it."
+    },
+    {
+      "id": "TV-035",
+      "pattern": "\\bis encouraged to\\b",
+      "match_type": "regex",
+      "obligation_type": "recommendation",
+      "weight": 0.6
+    },
+    {
+      "id": "TV-036",
+      "pattern": "\\bwould be advisable\\b",
+      "match_type": "regex",
+      "obligation_type": "recommendation",
+      "weight": 0.55
+    },
+    {
+      "id": "TV-037",
+      "pattern": "\\bshall take immediate steps\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "urgency_override": "immediate",
+      "weight": 1.1
+    },
+    {
+      "id": "TV-038",
+      "pattern": "\\bshall forthwith\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "urgency_override": "immediate",
+      "weight": 1.1
+    },
+    {
+      "id": "TV-039",
+      "pattern": "\\bshall without delay\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "urgency_override": "immediate",
+      "weight": 1.1
+    },
+    {
+      "id": "TV-040",
+      "pattern": "\\bshall at the earliest\\b",
+      "match_type": "regex",
+      "obligation_type": "mandatory",
+      "urgency_override": "immediate",
+      "weight": 1.1
+    }
+  ]
+}

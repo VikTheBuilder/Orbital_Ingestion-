@@ -1,0 +1,383 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Deadline extraction rules for RBI regulatory text. Ordered by specificity — most specific first.",
+  "urgency_thresholds": {
+    "immediate_days": 0,
+    "short_term_days": 30,
+    "medium_term_days": 90,
+    "long_term_days": 365
+  },
+  "rules": [
+    {
+      "id": "DL-001",
+      "pattern": "\\bwith immediate effect\\b",
+      "match_type": "regex",
+      "deadline_text": "with immediate effect",
+      "urgency": "immediate",
+      "duration": null,
+      "weight": 1.0
+    },
+    {
+      "id": "DL-002",
+      "pattern": "\\bimmediately\\b",
+      "match_type": "regex",
+      "deadline_text": "immediately",
+      "urgency": "immediate",
+      "duration": null,
+      "weight": 1.0
+    },
+    {
+      "id": "DL-003",
+      "pattern": "\\bforthwith\\b",
+      "match_type": "regex",
+      "deadline_text": "forthwith",
+      "urgency": "immediate",
+      "duration": null,
+      "weight": 1.0
+    },
+    {
+      "id": "DL-004",
+      "pattern": "\\bat the earliest\\b",
+      "match_type": "regex",
+      "deadline_text": "at the earliest",
+      "urgency": "immediate",
+      "duration": null,
+      "weight": 0.9
+    },
+    {
+      "id": "DL-005",
+      "pattern": "\\bwithout delay\\b",
+      "match_type": "regex",
+      "deadline_text": "without delay",
+      "urgency": "immediate",
+      "duration": null,
+      "weight": 0.9
+    },
+    {
+      "id": "DL-006",
+      "pattern": "\\bwithin\\s+(six|6)\\s+hours\\b",
+      "match_type": "regex",
+      "deadline_text": "within 6 hours",
+      "urgency": "immediate",
+      "duration": "6 hours",
+      "weight": 1.0,
+      "notes": "Cyber incident initial reporting SLA"
+    },
+    {
+      "id": "DL-007",
+      "pattern": "\\bwithin\\s+(twenty.four|24)\\s+hours\\b",
+      "match_type": "regex",
+      "deadline_text": "within 24 hours",
+      "urgency": "immediate",
+      "duration": "24 hours",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-008",
+      "pattern": "\\bwithin\\s+(forty.eight|48)\\s+hours\\b",
+      "match_type": "regex",
+      "deadline_text": "within 48 hours",
+      "urgency": "immediate",
+      "duration": "48 hours",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-009",
+      "pattern": "\\bwithin\\s+(seventy.two|72)\\s+hours\\b",
+      "match_type": "regex",
+      "deadline_text": "within 72 hours",
+      "urgency": "immediate",
+      "duration": "72 hours",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-010",
+      "pattern": "\\bwithin\\s+(?:one|1)\\s+(?:working\\s+)?day\\b",
+      "match_type": "regex",
+      "deadline_text": "within 1 day",
+      "urgency": "immediate",
+      "duration": "1 day",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-011",
+      "pattern": "\\bwithin\\s+(?:three|3)\\s+(?:working\\s+|calendar\\s+)?days\\b",
+      "match_type": "regex",
+      "deadline_text": "within 3 days",
+      "urgency": "immediate",
+      "duration": "3 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-012",
+      "pattern": "\\bwithin\\s+(?:five|5)\\s+(?:working\\s+|calendar\\s+)?days\\b",
+      "match_type": "regex",
+      "deadline_text": "within 5 days",
+      "urgency": "immediate",
+      "duration": "5 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-013",
+      "pattern": "\\bwithin\\s+(?:seven|7)\\s+(?:calendar\\s+|working\\s+)?days\\b",
+      "match_type": "regex",
+      "deadline_text": "within 7 days",
+      "urgency": "short_term",
+      "duration": "7 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-014",
+      "pattern": "\\bwithin\\s+(?:fourteen|15|15)\\s+(?:calendar\\s+|working\\s+)?days\\b",
+      "match_type": "regex",
+      "deadline_text": "within 15 days",
+      "urgency": "short_term",
+      "duration": "15 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-015",
+      "pattern": "\\bwithin\\s+(?:thirty|30)\\s+(?:calendar\\s+|working\\s+)?days\\b",
+      "match_type": "regex",
+      "deadline_text": "within 30 days",
+      "urgency": "short_term",
+      "duration": "30 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-016",
+      "pattern": "\\bwithin\\s+(?:one|1)\\s+month\\b",
+      "match_type": "regex",
+      "deadline_text": "within 1 month",
+      "urgency": "short_term",
+      "duration": "30 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-017",
+      "pattern": "\\bwithin\\s+(?:forty.five|45)\\s+days\\b",
+      "match_type": "regex",
+      "deadline_text": "within 45 days",
+      "urgency": "short_term",
+      "duration": "45 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-018",
+      "pattern": "\\bwithin\\s+(?:sixty|60)\\s+days\\b",
+      "match_type": "regex",
+      "deadline_text": "within 60 days",
+      "urgency": "medium_term",
+      "duration": "60 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-019",
+      "pattern": "\\bwithin\\s+(?:two|2)\\s+months\\b",
+      "match_type": "regex",
+      "deadline_text": "within 2 months",
+      "urgency": "medium_term",
+      "duration": "60 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-020",
+      "pattern": "\\bwithin\\s+(?:ninety|90)\\s+days\\b",
+      "match_type": "regex",
+      "deadline_text": "within 90 days",
+      "urgency": "medium_term",
+      "duration": "90 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-021",
+      "pattern": "\\bwithin\\s+(?:three|3)\\s+months\\b",
+      "match_type": "regex",
+      "deadline_text": "within 3 months",
+      "urgency": "medium_term",
+      "duration": "90 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-022",
+      "pattern": "\\bwithin\\s+(?:six|6)\\s+months\\b",
+      "match_type": "regex",
+      "deadline_text": "within 6 months",
+      "urgency": "medium_term",
+      "duration": "180 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-023",
+      "pattern": "\\bwithin\\s+(?:one|1)\\s+year\\b",
+      "match_type": "regex",
+      "deadline_text": "within 1 year",
+      "urgency": "long_term",
+      "duration": "365 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-024",
+      "pattern": "\\bwithin\\s+(?:two|2)\\s+years\\b",
+      "match_type": "regex",
+      "deadline_text": "within 2 years",
+      "urgency": "long_term",
+      "duration": "730 days",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-025",
+      "pattern": "\\bwithin\\s+(\\d+)\\s+(calendar\\s+days|working\\s+days|days|weeks|months|years)\\b",
+      "match_type": "regex",
+      "deadline_text": "within {1} {2}",
+      "urgency": "computed",
+      "duration": "{1} {2}",
+      "weight": 0.95,
+      "notes": "Generic numeric catcher. Groups 1=number, 2=unit."
+    },
+    {
+      "id": "DL-026",
+      "pattern": "\\bfor a period not exceeding\\s+(\\d+|[a-z]+)\\s+(days|weeks|months|years)\\b",
+      "match_type": "regex",
+      "deadline_text": "not exceeding {1} {2}",
+      "urgency": "computed",
+      "duration": "{1} {2}",
+      "weight": 0.9
+    },
+    {
+      "id": "DL-027",
+      "pattern": "\\bwith effect from\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4}|\\d{1,2}[./-]\\d{1,2}[./-]\\d{4})\\b",
+      "match_type": "regex",
+      "deadline_text": "with effect from {1}",
+      "urgency": "triggered",
+      "absolute_date": "{1}",
+      "weight": 1.0,
+      "notes": "Effective date — activation point for the circular."
+    },
+    {
+      "id": "DL-028",
+      "pattern": "\\bcome into force\\s+(?:on|from)\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4}|\\d{1,2}[./-]\\d{1,2}[./-]\\d{4})\\b",
+      "match_type": "regex",
+      "deadline_text": "come into force on {1}",
+      "urgency": "triggered",
+      "absolute_date": "{1}",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-029",
+      "pattern": "\\bby\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})\\b",
+      "match_type": "regex",
+      "deadline_text": "by {1}",
+      "urgency": "short_term",
+      "absolute_date": "{1}",
+      "weight": 0.9
+    },
+    {
+      "id": "DL-030",
+      "pattern": "\\bquarterly\\b|\\bevery\\s+quarter\\b|\\bon a quarterly basis\\b",
+      "match_type": "regex",
+      "deadline_text": "quarterly",
+      "urgency": "ongoing",
+      "duration": "quarterly",
+      "frequency": "quarterly",
+      "weight": 0.9
+    },
+    {
+      "id": "DL-031",
+      "pattern": "\\bmonthly\\b|\\bevery\\s+month\\b|\\bon a monthly basis\\b",
+      "match_type": "regex",
+      "deadline_text": "monthly",
+      "urgency": "ongoing",
+      "duration": "monthly",
+      "frequency": "monthly",
+      "weight": 0.9
+    },
+    {
+      "id": "DL-032",
+      "pattern": "\\bannually\\b|\\bevery\\s+year\\b|\\bon an annual basis\\b|\\bevery financial year\\b",
+      "match_type": "regex",
+      "deadline_text": "annually",
+      "urgency": "ongoing",
+      "duration": "annually",
+      "frequency": "annual",
+      "weight": 0.9
+    },
+    {
+      "id": "DL-033",
+      "pattern": "\\bhalf.yearly\\b|\\bevery\\s+six\\s+months\\b",
+      "match_type": "regex",
+      "deadline_text": "half-yearly",
+      "urgency": "ongoing",
+      "duration": "half-yearly",
+      "frequency": "bi-annual",
+      "weight": 0.9
+    },
+    {
+      "id": "DL-034",
+      "pattern": "\\bon a continuous basis\\b|\\bat all times\\b|\\bpermanently\\b",
+      "match_type": "regex",
+      "deadline_text": "ongoing",
+      "urgency": "ongoing",
+      "duration": null,
+      "frequency": "continuous",
+      "weight": 0.85
+    },
+    {
+      "id": "DL-035",
+      "pattern": "\\bbefore commencement of\\b",
+      "match_type": "regex",
+      "deadline_text": "before commencement",
+      "urgency": "triggered",
+      "duration": null,
+      "weight": 0.9
+    },
+    {
+      "id": "DL-036",
+      "pattern": "\\bnot later than\\s+(\\d+)\\s+(days|months|years)\\b",
+      "match_type": "regex",
+      "deadline_text": "not later than {1} {2}",
+      "urgency": "computed",
+      "duration": "{1} {2}",
+      "weight": 0.95
+    },
+    {
+      "id": "DL-037",
+      "pattern": "\\bwithin\\s+a\\s+period\\s+of\\s+(\\d+)\\s+(days|months|years)\\b",
+      "match_type": "regex",
+      "deadline_text": "within a period of {1} {2}",
+      "urgency": "computed",
+      "duration": "{1} {2}",
+      "weight": 0.95
+    },
+    {
+      "id": "DL-038",
+      "pattern": "\\bon\\s+or\\s+before\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4}|\\d{1,2}[./-]\\d{1,2}[./-]\\d{4})\\b",
+      "match_type": "regex",
+      "deadline_text": "on or before {1}",
+      "urgency": "short_term",
+      "absolute_date": "{1}",
+      "weight": 1.0
+    },
+    {
+      "id": "DL-039",
+      "pattern": "\\bbeyond\\s+(?:thirty|30)\\s+(?:calendar\\s+|working\\s+)?days\\b",
+      "match_type": "regex",
+      "deadline_text": "beyond 30 days",
+      "urgency": "short_term",
+      "duration": "30 days",
+      "weight": 0.9,
+      "notes": "Approval required if activity continues beyond 30 days — effectively a 30-day deadline."
+    },
+    {
+      "id": "DL-040",
+      "pattern": "\\bbeyond\\s+(\\d+)\\s+(days|months|years)\\b",
+      "match_type": "regex",
+      "deadline_text": "beyond {1} {2}",
+      "urgency": "computed",
+      "duration": "{1} {2}",
+      "weight": 0.85,
+      "notes": "Generic beyond-N pattern for approval/extension obligations."
+    }
+  ]
+}

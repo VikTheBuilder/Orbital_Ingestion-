@@ -1,0 +1,97 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Maps domains, obligation sub-types, and keyword signals to responsible departments.",
+  "domain_to_departments": {
+    "KYC_AML": ["AML_KYC", "Operations", "Compliance"],
+    "Cybersecurity": ["Cybersecurity", "IT", "Compliance"],
+    "DataPrivacy": ["IT", "Legal", "Compliance"],
+    "FinancialInclusion": ["BranchNetwork", "Operations", "Compliance"],
+    "BusinessContinuity": ["IT", "Operations", "BranchNetwork", "Compliance"],
+    "FraudManagement": ["FraudManagement", "Operations", "IT"],
+    "CapitalAdequacy": ["RiskManagement", "Finance", "Compliance"],
+    "Payments": ["Operations", "DigitalBanking", "IT"],
+    "CustomerService": ["CustomerService", "RetailBanking", "Finance", "Compliance"],
+    "Governance": ["Compliance", "Legal"],
+    "ITInfrastructure": ["IT", "DigitalBanking", "Operations"],
+    "ReportingAudit": ["Compliance", "InternalAudit", "Finance"],
+    "HR_Training": ["HR", "Compliance"],
+    "FEMA": ["Treasury", "Compliance", "Legal"],
+    "Other": ["Compliance"]
+  },
+  "sub_type_overrides": {
+    "reporting": ["Compliance", "InternalAudit"],
+    "approval_required": ["Compliance", "Legal"],
+    "governance": ["Compliance", "Legal"],
+    "record_retention": ["Operations", "IT", "Compliance"],
+    "implementation": ["IT", "Operations"],
+    "audit": ["InternalAudit", "Compliance"],
+    "customer_protection": ["CustomerService", "RetailBanking", "Compliance"],
+    "kyc_due_diligence": ["AML_KYC", "Operations"],
+    "incident_reporting": ["Cybersecurity", "IT", "Compliance"],
+    "prohibited_activity": ["Compliance", "Legal"],
+    "capital_adequacy": ["RiskManagement", "Finance"],
+    "outsourcing": ["Legal", "Compliance", "IT", "Operations"],
+    "business_continuity": ["IT", "Operations", "Compliance"]
+  },
+  "keyword_signals": [
+    {
+      "id": "DS-001",
+      "keywords": ["atm", "cash", "currency chest", "vault"],
+      "add_departments": ["Operations", "BranchNetwork"]
+    },
+    {
+      "id": "DS-002",
+      "keywords": ["upi", "mobile banking", "internet banking", "app"],
+      "add_departments": ["DigitalBanking", "IT"]
+    },
+    {
+      "id": "DS-003",
+      "keywords": ["fee", "charge", "waiver", "refund"],
+      "add_departments": ["RetailBanking", "Finance", "CustomerService"]
+    },
+    {
+      "id": "DS-004",
+      "keywords": ["branch", "satellite office", "banking outlet"],
+      "add_departments": ["BranchNetwork", "Operations"]
+    },
+    {
+      "id": "DS-005",
+      "keywords": ["treasury", "forex", "derivative", "swap"],
+      "add_departments": ["Treasury"]
+    },
+    {
+      "id": "DS-006",
+      "keywords": ["credit", "loan", "advance", "npa", "npl"],
+      "add_departments": ["RiskManagement"]
+    },
+    {
+      "id": "DS-007",
+      "keywords": ["legal", "court", "tribunal", "arbitration"],
+      "add_departments": ["Legal"]
+    },
+    {
+      "id": "DS-008",
+      "keywords": ["board", "directors", "committee"],
+      "add_departments": ["Compliance", "Legal"]
+    },
+    {
+      "id": "DS-009",
+      "keywords": ["staff", "employee", "training", "awareness"],
+      "add_departments": ["HR"]
+    },
+    {
+      "id": "DS-010",
+      "keywords": ["data centre", "server", "cloud", "infrastructure"],
+      "add_departments": ["IT"]
+    }
+  ],
+  "actor_to_departments": {
+    "Board of Directors": ["Compliance", "Legal"],
+    "Chief Compliance Officer": ["Compliance"],
+    "CISO": ["Cybersecurity", "IT"],
+    "Chief Risk Officer": ["RiskManagement"],
+    "Auditor": ["InternalAudit"],
+    "Principal Officer": ["AML_KYC", "Compliance"]
+  }
+}

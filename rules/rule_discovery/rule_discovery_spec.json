@@ -1,0 +1,148 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Specification for the self-improving Rule Discovery Engine. Defines how new patterns are detected, scored, and promoted into the rule library.",
+  "output_schema": {
+    "new_rule_candidates": [
+      {
+        "candidate_id": "string — auto-generated e.g. CAND-2026-001",
+        "source_doc_id": "string — doc_id of the document where pattern was found",
+        "source_clause": "string — exact clause text",
+        "detected_pattern": "string — the regex or phrase pattern",
+        "pattern_type": "trigger_verb | actor | deadline | domain_keyword | cross_reference | clause_structure",
+        "suggested_rule": {
+          "id": "string — suggested rule ID e.g. TV-041",
+          "pattern": "string — machine-readable regex",
+          "match_type": "regex | phrase | keyword",
+          "obligation_type": "mandatory | discretionary | conditional | time_bound | prohibition | approval_required | recommendation",
+          "domain": "string — if applicable",
+          "weight": "number 0.0 to 1.0"
+        },
+        "occurrence_count": "number — how many times this pattern appeared in the corpus",
+        "confidence": "number 0.0 to 1.0",
+        "reasoning": "string — why this pattern is worth promoting to a rule",
+        "recommended_file": "string — which rule file this should be added to e.g. rules/common/trigger_verbs.json",
+        "status": "candidate | approved | rejected | merged"
+      }
+    ],
+    "pattern_clusters": [
+      {
+        "cluster_id": "string",
+        "representative_pattern": "string",
+        "member_patterns": ["array of similar patterns found in corpus"],
+        "suggested_canonical": "string — consolidated regex",
+        "reasoning": "string"
+      }
+    ],
+    "actor_discoveries": [
+      {
+        "raw_text": "string — text fragment",
+        "suggested_actor": "string — canonical form",
+        "occurrence_count": "number",
+        "confidence": "number"
+      }
+    ],
+    "deadline_discoveries": [
+      {
+        "raw_text": "string — e.g. 'within ten business days'",
+        "normalized_duration": "string — e.g. '10 business days'",
+        "suggested_urgency": "immediate | short_term | medium_term | long_term",
+        "occurrence_count": "number",
+        "confidence": "number"
+      }
+    ]
+  },
+  "detection_algorithms": [
+    {
+      "id": "RD-001",
+      "name": "novel_trigger_verb_detection",
+      "description": "Find verb phrases that appear before an obligation-like clause but are not in trigger_verbs.json.",
+      "method": "Extract subject-verb-object triples. Compare verbs against known trigger_verbs.json. Score unseen verbs by co-occurrence with known obligation markers.",
+      "minimum_occurrences": 3,
+      "minimum_confidence": 0.70
+    },
+    {
+      "id": "RD-002",
+      "name": "novel_actor_detection",
+      "description": "Find noun phrases that appear as subjects in shall/must clauses but are not in actor_patterns.json.",
+      "method": "Extract NPs before 'shall' or 'must'. Compare against actor_patterns.json. Flag unseen entities.",
+      "minimum_occurrences": 2,
+      "minimum_confidence": 0.65
+    },
+    {
+      "id": "RD-003",
+      "name": "novel_deadline_expression",
+      "description": "Find temporal expressions not covered by deadline_patterns.json.",
+      "method": "Extract all temporal NPs (regex: \\\\bwithin|before|by|not later than|not exceeding). Compare against known deadline_patterns.json. Flag novel patterns.",
+      "minimum_occurrences": 2,
+      "minimum_confidence": 0.75
+    },
+    {
+      "id": "RD-004",
+      "name": "novel_domain_keyword",
+      "description": "Find technical terms that appear frequently in a semantic cluster but are absent from domain_keywords.json.",
+      "method": "TF-IDF over extracted clauses. Cluster by domain (if domain is already assigned). Flag high-TF-IDF terms not in keyword list.",
+      "minimum_occurrences": 5,
+      "minimum_confidence": 0.60
+    },
+    {
+      "id": "RD-005",
+      "name": "novel_cross_reference",
+      "description": "Find references to new circulars, acts, or directions not in cross_reference_patterns.json.",
+      "method": "Regex for formal citation patterns: 'Circular No.', 'Direction', 'Act, 20XX'. Compare against known ref_type list.",
+      "minimum_occurrences": 1,
+      "minimum_confidence": 0.80
+    },
+    {
+      "id": "RD-006",
+      "name": "obligation_cluster_similarity",
+      "description": "Cluster obligations by action text. Find obligation types that repeat across documents — candidates for new sub_type rules.",
+      "method": "Sentence embedding similarity (cosine > 0.85). Group and count. Propose new sub_type if cluster size > 10.",
+      "minimum_occurrences": 10,
+      "minimum_confidence": 0.70
+    },
+    {
+      "id": "RD-007",
+      "name": "sector_vocabulary_expansion",
+      "description": "Detect domain-specific vocabulary in sector-specific circulars (NBFC, FEMA, Payments) not in sector rule packs.",
+      "method": "Compare extracted keywords against sector_rules/*.json keyword lists. Score by frequency and domain co-occurrence.",
+      "minimum_occurrences": 3,
+      "minimum_confidence": 0.65
+    }
+  ],
+  "promotion_workflow": {
+    "stages": [
+      {
+        "stage": 1,
+        "name": "detection",
+        "description": "Run detection algorithms on processed documents. Populate new_rule_candidates with status=candidate."
+      },
+      {
+        "stage": 2,
+        "name": "llm_review",
+        "description": "Send candidate rules to LLM for validation. LLM checks regex correctness, suggests canonical form, and assigns reasoning.",
+        "llm_prompt_template": "You are a regulatory rule engineer. Review this candidate rule extracted from an RBI document. Validate the regex pattern, suggest improvements, and confirm whether it generalises across future circulars. Return JSON: {candidate_id, validated_pattern, generalised: true/false, reasoning, recommended_file}"
+      },
+      {
+        "stage": 3,
+        "name": "confidence_threshold",
+        "description": "Only candidates with confidence >= 0.70 after LLM review proceed to approval."
+      },
+      {
+        "stage": 4,
+        "name": "approval",
+        "description": "Candidate rules with status=approved are written to the recommended_file. Status updated to merged."
+      },
+      {
+        "stage": 5,
+        "name": "regression_test",
+        "description": "After merge, re-run extraction on the source document. Verify the new rule improves obligation recall without introducing false positives."
+      }
+    ]
+  },
+  "storage": {
+    "candidates_file": "rules/rule_discovery/candidates.jsonl",
+    "approved_file": "rules/rule_discovery/approved.jsonl",
+    "rejected_file": "rules/rule_discovery/rejected.jsonl"
+  }
+}

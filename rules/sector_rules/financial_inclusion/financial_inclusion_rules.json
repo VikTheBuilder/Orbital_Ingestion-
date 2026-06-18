@@ -1,0 +1,49 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Financial inclusion rules — BC network, no-frills accounts, PSL, and rural banking obligations.",
+  "applies_to": ["Bank", "Small Finance Bank", "Regional Rural Bank"],
+  "obligation_additions": [
+    {
+      "id": "FI-001",
+      "name": "bsbda_opening",
+      "trigger_phrases": ["basic savings bank deposit account", "bsbda", "no-frills account", "shall offer basic savings"],
+      "domain": "FinancialInclusion",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "medium",
+      "departments": ["BranchNetwork", "Operations", "Compliance"]
+    },
+    {
+      "id": "FI-002",
+      "name": "bc_network_management",
+      "trigger_phrases": ["business correspondent", "bc agent", "shall ensure bc", "bc network", "village level entrepreneur"],
+      "domain": "FinancialInclusion",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "severity": "medium",
+      "departments": ["BranchNetwork", "Operations", "Compliance"]
+    },
+    {
+      "id": "FI-003",
+      "name": "psl_reporting",
+      "trigger_phrases": ["priority sector", "psl", "adjusted net bank credit", "anbc", "priority sector achievement"],
+      "domain": "FinancialInclusion",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "deadline": {"text": "quarterly", "frequency": "quarterly", "urgency": "ongoing"},
+      "severity": "high",
+      "departments": ["Compliance", "Finance", "RiskManagement"]
+    },
+    {
+      "id": "FI-004",
+      "name": "financial_literacy_programme",
+      "trigger_phrases": ["financial literacy", "awareness programme", "financial education", "shall conduct financial literacy"],
+      "domain": "FinancialInclusion",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "low",
+      "departments": ["BranchNetwork", "HR", "Compliance"]
+    }
+  ]
+}

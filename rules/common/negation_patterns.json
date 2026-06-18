@@ -1,0 +1,109 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Negation and prohibition patterns that invert or negate an obligation. Must be checked before classifying a clause as mandatory.",
+  "rules": [
+    {
+      "id": "NEG-001",
+      "pattern": "\\bshall not\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-002",
+      "pattern": "\\bmust not\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-003",
+      "pattern": "\\bno bank shall\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-004",
+      "pattern": "\\bno regulated entity shall\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-005",
+      "pattern": "\\bnot permitted to\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-006",
+      "pattern": "\\bis prohibited from\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-007",
+      "pattern": "\\bshall not be permitted to\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-008",
+      "pattern": "\\bshall not engage in\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-009",
+      "pattern": "\\bshall not exceed\\b",
+      "match_type": "regex",
+      "effect": "limit",
+      "weight": 0.9,
+      "notes": "Cap on a value (e.g. exposure limit). Not a strict prohibition but a ceiling."
+    },
+    {
+      "id": "NEG-010",
+      "pattern": "\\bshall not be less than\\b",
+      "match_type": "regex",
+      "effect": "floor",
+      "weight": 0.9,
+      "notes": "Minimum threshold obligation."
+    },
+    {
+      "id": "NEG-011",
+      "pattern": "\\bshall refrain from\\b",
+      "match_type": "regex",
+      "effect": "prohibition",
+      "weight": 1.0
+    },
+    {
+      "id": "NEG-012",
+      "pattern": "\\bwithout the prior approval\\b",
+      "match_type": "regex",
+      "effect": "prohibition_without_approval",
+      "weight": 0.95,
+      "notes": "Action is prohibited unless prior approval obtained."
+    },
+    {
+      "id": "NEG-013",
+      "pattern": "\\bexcept with the prior written consent\\b",
+      "match_type": "regex",
+      "effect": "prohibition_without_approval",
+      "weight": 0.95
+    },
+    {
+      "id": "NEG-014",
+      "pattern": "\\bnot be construed as\\b",
+      "match_type": "regex",
+      "effect": "interpretive_limit",
+      "weight": 0.5,
+      "notes": "Definitional limit — not an obligation. Low weight, flag for LLM review."
+    }
+  ]
+}

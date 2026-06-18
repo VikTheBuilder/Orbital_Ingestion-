@@ -1,0 +1,315 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Domain classification keyword and phrase dictionaries. Evaluated in order — first match wins. Add sector-specific overrides in sector_rules/.",
+  "rules": [
+    {
+      "id": "DOM-001",
+      "domain": "KYC_AML",
+      "keywords": [
+        "kyc", "know your customer", "customer due diligence", "cdd", "enhanced due diligence",
+        "edd", "aml", "anti-money laundering", "pmla", "prevention of money laundering",
+        "beneficial owner", "ubo", "politically exposed person", "pep",
+        "sanctions", "uapa", "small accounts", "re-kyc", "periodic updation",
+        "identity verification", "aadhaar", "pan card", "address proof",
+        "suspicious transaction", "str", "cash transaction report", "ctr",
+        "wire transfer", "correspondent banking", "shell companies",
+        "customer risk categorisation", "risk based approach"
+      ],
+      "phrases": [
+        "customer due diligence",
+        "enhanced due diligence",
+        "beneficial ownership",
+        "periodic updation of kyc",
+        "risk based customer acceptance",
+        "wire transfer regulations",
+        "suspicious transaction report",
+        "cash transaction report"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-002",
+      "domain": "Cybersecurity",
+      "keywords": [
+        "cyber", "cybersecurity", "cert-in", "information security", "infosec",
+        "malware", "ransomware", "phishing", "ddos", "denial of service",
+        "vulnerability", "patch", "penetration testing", "vapt",
+        "security operations centre", "soc", "incident response",
+        "data breach", "intrusion detection", "firewall", "encryption",
+        "access control", "privileged access", "mfa", "multi-factor authentication",
+        "zero trust", "cyber drill", "cyber resilience", "cyber hygiene",
+        "security audit", "is audit", "information systems audit",
+        "network security", "endpoint security", "application security"
+      ],
+      "phrases": [
+        "information security policy",
+        "cyber security framework",
+        "security operations centre",
+        "penetration testing",
+        "vulnerability assessment",
+        "incident response plan",
+        "data loss prevention",
+        "privileged access management",
+        "security patch management"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-003",
+      "domain": "DataPrivacy",
+      "keywords": [
+        "data privacy", "personal data", "sensitive personal data", "dpdp",
+        "data protection", "consent", "data localisation", "data retention",
+        "data minimisation", "right to erasure", "data principal",
+        "data fiduciary", "data processor", "gdpr", "privacy policy",
+        "personal information", "pii", "aadhaar data", "biometric data"
+      ],
+      "phrases": [
+        "digital personal data protection",
+        "data localisation requirements",
+        "data retention policy",
+        "consent management",
+        "data principal rights"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-004",
+      "domain": "FinancialInclusion",
+      "keywords": [
+        "financial inclusion", "basic savings", "jan dhan", "pmjdy",
+        "no-frills account", "unbanked", "underserved", "rural", "semi-urban",
+        "business correspondent", "bc", "banking outlet", "village level entrepreneur",
+        "self help group", "shg", "micro credit", "priority sector",
+        "weaker section", "economically weaker section", "ews"
+      ],
+      "phrases": [
+        "business correspondent network",
+        "basic savings bank deposit account",
+        "priority sector lending",
+        "financial literacy",
+        "banking services in unbanked areas"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-005",
+      "domain": "BusinessContinuity",
+      "keywords": [
+        "business continuity", "bcp", "disaster recovery", "drp", "rto", "rpo",
+        "calamity", "natural disaster", "flood", "earthquake", "pandemic",
+        "temporary premises", "alternate site", "dr site", "failover",
+        "restoration", "resumption", "business resumption",
+        "critical operations", "recovery time objective", "recovery point objective"
+      ],
+      "phrases": [
+        "business continuity plan",
+        "disaster recovery plan",
+        "recovery time objective",
+        "recovery point objective",
+        "temporary banking premises",
+        "critical system restoration"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-006",
+      "domain": "FraudManagement",
+      "keywords": [
+        "fraud", "fraudulent", "unauthorised transaction", "phishing",
+        "vishing", "smishing", "social engineering", "identity theft",
+        "card fraud", "skimming", "atm fraud", "account takeover",
+        "mule account", "advance fee fraud", "cyber fraud",
+        "mis-selling", "misrepresentation", "staff fraud"
+      ],
+      "phrases": [
+        "fraud monitoring",
+        "fraud reporting",
+        "unauthorised electronic transaction",
+        "customer liability in fraud",
+        "fraud risk management"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-007",
+      "domain": "CapitalAdequacy",
+      "keywords": [
+        "capital adequacy", "crar", "cet1", "tier 1", "tier 2",
+        "capital conservation buffer", "ccb", "countercyclical buffer",
+        "risk weighted assets", "rwa", "basel", "icaap",
+        "leverage ratio", "minimum capital requirement", "capital planning",
+        "credit risk capital", "market risk capital", "operational risk capital",
+        "npa provisioning", "provision coverage ratio", "pcr"
+      ],
+      "phrases": [
+        "capital adequacy ratio",
+        "risk weighted assets",
+        "internal capital adequacy assessment",
+        "capital conservation buffer",
+        "pillar 2 requirements"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-008",
+      "domain": "Payments",
+      "keywords": [
+        "payment", "settlement", "clearing", "neft", "rtgs", "imps", "upi",
+        "atm", "pos terminal", "point of sale", "prepaid", "ppi",
+        "mobile banking", "internet banking", "net banking", "wallet",
+        "payment gateway", "nodal account", "escrow", "card network",
+        "npci", "visa", "mastercard", "rupay", "emi", "recurring payment",
+        "mandate", "nach", "ecs", "cheque", "demand draft", "dd",
+        "satellite office", "interoperability"
+      ],
+      "phrases": [
+        "payment and settlement systems",
+        "national electronic funds transfer",
+        "real time gross settlement",
+        "unified payments interface",
+        "prepaid payment instrument",
+        "automated teller machine",
+        "mobile banking facilities",
+        "point of sale terminal"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-009",
+      "domain": "CustomerService",
+      "keywords": [
+        "customer service", "grievance", "grievance redressal", "complaint",
+        "ombudsman", "banking ombudsman", "integrated ombudsman scheme",
+        "customer rights", "fair practices", "transparency", "disclosure",
+        "fees", "charges", "service charges", "penalty", "interest",
+        "waiver", "refund", "compensation", "cooling off period",
+        "doorstep banking", "accessibility", "differently abled"
+      ],
+      "phrases": [
+        "grievance redressal mechanism",
+        "customer complaint",
+        "banking ombudsman scheme",
+        "integrated ombudsman scheme",
+        "fair practices code",
+        "most important terms and conditions",
+        "key fact statement"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-010",
+      "domain": "Governance",
+      "keywords": [
+        "governance", "board", "board of directors", "audit committee",
+        "risk management committee", "nomination committee", "remuneration",
+        "fit and proper", "independent director", "non-executive director",
+        "related party", "conflict of interest", "whistle blower",
+        "disclosure", "transparency", "accountability", "compliance function",
+        "internal control", "policy framework", "corporate governance"
+      ],
+      "phrases": [
+        "board of directors",
+        "audit committee of the board",
+        "risk management committee",
+        "fit and proper criteria",
+        "related party transactions",
+        "corporate governance guidelines",
+        "internal controls framework"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-011",
+      "domain": "ITInfrastructure",
+      "keywords": [
+        "it infrastructure", "core banking", "cbs", "data centre",
+        "cloud", "cloud computing", "system availability", "uptime",
+        "patch management", "software update", "hardware", "server",
+        "database", "backup", "archival", "it governance", "it policy",
+        "change management", "release management", "capacity planning",
+        "virtualisation", "api", "middleware", "legacy system"
+      ],
+      "phrases": [
+        "core banking solution",
+        "data centre operations",
+        "cloud adoption framework",
+        "system availability requirements",
+        "information technology governance",
+        "change management process"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-012",
+      "domain": "ReportingAudit",
+      "keywords": [
+        "submit", "report", "return", "filing", "intimation", "disclosure",
+        "statutory return", "regulatory return", "audit report", "inspection report",
+        "annual report", "quarterly report", "monthly report", "weekly report",
+        "form", "prescribed format", "acknowledgement", "data submission",
+        "off-site surveillance", "onsite inspection", "supervisory review"
+      ],
+      "phrases": [
+        "submit a report",
+        "quarterly return",
+        "annual compliance report",
+        "regulatory reporting",
+        "off-site surveillance data",
+        "statutory audit report",
+        "inspection findings"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-013",
+      "domain": "HR_Training",
+      "keywords": [
+        "training", "staff", "employee", "personnel", "workforce",
+        "capacity building", "skill development", "awareness programme",
+        "human resources", "recruitment", "appointment", "compensation",
+        "remuneration", "conduct", "ethics", "code of conduct",
+        "whistle blower", "vigilance"
+      ],
+      "phrases": [
+        "staff training programme",
+        "awareness training",
+        "employee code of conduct",
+        "human resource policy",
+        "capacity building initiative"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-014",
+      "domain": "FEMA",
+      "keywords": [
+        "fema", "foreign exchange", "forex", "foreign currency", "remittance",
+        "ecb", "external commercial borrowing", "fdi", "foreign direct investment",
+        "odi", "overseas direct investment", "nri", "non-resident",
+        "authorised dealer", "ad", "liberalised remittance scheme", "lrs",
+        "import", "export", "trade credit", "current account", "capital account",
+        "rda", "rupee drawing arrangement", "money transfer"
+      ],
+      "phrases": [
+        "foreign exchange management act",
+        "authorised dealer category",
+        "external commercial borrowing",
+        "liberalised remittance scheme",
+        "foreign direct investment",
+        "overseas direct investment",
+        "current account transactions"
+      ],
+      "weight": 1.0
+    },
+    {
+      "id": "DOM-015",
+      "domain": "Other",
+      "keywords": [],
+      "phrases": [],
+      "weight": 0.1,
+      "notes": "Fallback domain — used when no other domain matches."
+    }
+  ]
+}

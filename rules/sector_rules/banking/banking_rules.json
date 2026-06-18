@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Sector-specific rule overrides and additions for Scheduled Commercial Banks, Small Finance Banks, and Payments Banks.",
+  "applies_to": ["Scheduled Commercial Bank", "Small Finance Bank", "Payments Bank", "Bank"],
+  "actor_overrides": [
+    {
+      "id": "BA-001",
+      "pattern": "\\bscheduled commercial bank(?:s)?\\b|\\bscb(?:s)?\\b",
+      "canonical_actor": "Scheduled Commercial Bank",
+      "weight": 1.0
+    },
+    {
+      "id": "BA-002",
+      "pattern": "\\bthe bank\\b|\\ball banks\\b|\\bbanks\\b",
+      "canonical_actor": "Bank",
+      "weight": 0.85
+    }
+  ],
+  "domain_keyword_additions": {
+    "CapitalAdequacy": [
+      "pcr", "provision coverage", "slr", "statutory liquidity ratio",
+      "crr", "cash reserve ratio", "nsfr", "net stable funding ratio",
+      "lcr", "liquidity coverage ratio", "lrm", "liquidity risk management"
+    ],
+    "ReportingAudit": [
+      "bsr", "basic statistical returns", "dbie", "xbrl", "regulatory reporting portal",
+      "offsite surveillance", "dsim returns", "form a", "form b", "quarterly return"
+    ],
+    "Governance": [
+      "fit and proper", "tenure", "remuneration committee", "board diversity",
+      "ceo succession", "risk appetite statement", "ras"
+    ],
+    "Payments": [
+      "swift", "iso 20022", "tokenisation", "card on file", "cof",
+      "acquirer", "issuer", "payment aggregator", "pa", "pg"
+    ]
+  },
+  "obligation_additions": [
+    {
+      "id": "BO-001",
+      "name": "slr_maintenance",
+      "trigger_phrases": ["shall maintain slr", "statutory liquidity ratio", "shall hold in approved securities"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "capital_adequacy",
+      "severity": "critical",
+      "departments": ["Treasury", "Finance", "RiskManagement"]
+    },
+    {
+      "id": "BO-002",
+      "name": "crr_maintenance",
+      "trigger_phrases": ["cash reserve ratio", "shall maintain crr", "average daily balance"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "capital_adequacy",
+      "severity": "critical",
+      "departments": ["Treasury", "Finance", "Compliance"]
+    },
+    {
+      "id": "BO-003",
+      "name": "psl_target",
+      "trigger_phrases": ["priority sector lending", "psl target", "adjusted net bank credit", "anbc"],
+      "domain": "FinancialInclusion",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "severity": "high",
+      "departments": ["Compliance", "RiskManagement", "Finance"]
+    },
+    {
+      "id": "BO-004",
+      "name": "irac_provisioning",
+      "trigger_phrases": ["income recognition", "asset classification", "provisioning norms", "npa", "doubtful", "sub-standard", "loss asset"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "capital_adequacy",
+      "severity": "high",
+      "departments": ["RiskManagement", "Finance", "InternalAudit"]
+    },
+    {
+      "id": "BO-005",
+      "name": "large_exposure_reporting",
+      "trigger_phrases": ["large exposure", "single borrower limit", "group borrower limit", "exposure ceiling"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "reporting",
+      "severity": "high",
+      "departments": ["RiskManagement", "Compliance", "Finance"]
+    }
+  ]
+}

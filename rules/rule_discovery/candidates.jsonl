@@ -1,0 +1,1 @@
+{"candidate_id": "CAND-2026-001", "source_doc_id": "seed", "source_clause": "seed file — empty at initialisation", "detected_pattern": "", "pattern_type": "trigger_verb", "suggested_rule": {}, "occurrence_count": 0, "confidence": 0.0, "reasoning": "Seed entry — replace with live candidates as documents are processed.", "recommended_file": "", "status": "rejected"}

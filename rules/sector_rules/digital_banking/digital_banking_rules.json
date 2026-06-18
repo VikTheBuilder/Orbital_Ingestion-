@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Digital banking rules for internet banking, mobile banking, DIGI-locker integration, and neo-bank operations.",
+  "applies_to": ["Bank", "Payment System Operator", "Small Finance Bank"],
+  "obligation_additions": [
+    {
+      "id": "DB-001",
+      "name": "internet_banking_security",
+      "trigger_phrases": ["internet banking", "net banking", "online banking security", "shall implement additional factor"],
+      "domain": "Cybersecurity",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "high",
+      "departments": ["DigitalBanking", "IT", "Cybersecurity"]
+    },
+    {
+      "id": "DB-002",
+      "name": "mobile_banking_registration",
+      "trigger_phrases": ["mobile banking registration", "shall enable mobile banking", "mobile number seeding"],
+      "domain": "Payments",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "medium",
+      "departments": ["DigitalBanking", "Operations"]
+    },
+    {
+      "id": "DB-003",
+      "name": "transaction_alert",
+      "trigger_phrases": ["shall send sms alert", "transaction alert", "shall notify customer", "email alert for transaction"],
+      "domain": "CustomerService",
+      "obligation_type": "mandatory",
+      "sub_type": "customer_protection",
+      "severity": "high",
+      "departments": ["DigitalBanking", "Operations", "CustomerService"]
+    },
+    {
+      "id": "DB-004",
+      "name": "cooling_period",
+      "trigger_phrases": ["cooling period", "mandatory cooling off", "new beneficiary cooling"],
+      "domain": "FraudManagement",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "high",
+      "departments": ["DigitalBanking", "Operations", "FraudManagement"]
+    }
+  ]
+}

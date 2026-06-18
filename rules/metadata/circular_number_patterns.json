@@ -1,0 +1,144 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Metadata extraction rules for RBI circular numbers, reference numbers, titles, and document classification.",
+  "circular_number_patterns": [
+    {
+      "id": "CN-001",
+      "pattern": "RBI/\\d{4}-\\d{2,4}/\\d+",
+      "match_type": "regex",
+      "field": "circular_number",
+      "example": "RBI/2025-26/121",
+      "weight": 1.0,
+      "notes": "Standard RBI circular number format."
+    },
+    {
+      "id": "CN-002",
+      "pattern": "(?:DoR|DOR)\\.(?:[A-Z.]+)\\.REC\\.\\d+/\\d{2}\\.\\d+/\\d{4}-\\d{2}",
+      "match_type": "regex",
+      "field": "reference_number",
+      "example": "DoR.STR.REC.68/21.04.048/2021-22",
+      "weight": 1.0,
+      "notes": "Department-level reference number used in Master Directions and circulars."
+    },
+    {
+      "id": "CN-003",
+      "pattern": "(?:DNBS|DNBR|DBS|DoS|DPSS|DRRR|DCM|DRM|DRG|DIT|IDMD|FMRD|FEPD|FEMA|FED|CEPD|DEPR)\\.(?:[A-Za-z.]+)\\.(?:[A-Za-z.]+)\\.\\d+/\\d{2}\\.\\d+/\\d{4}-\\d{2}",
+      "match_type": "regex",
+      "field": "reference_number",
+      "example": "DNBS(PD)CC.No.003/03.10.001/2016-17",
+      "weight": 1.0,
+      "notes": "Department-specific legacy reference format."
+    },
+    {
+      "id": "CN-004",
+      "pattern": "A\\.P\\.\\s*\\(DIR\\s*Series\\)\\s*Circular\\s+No\\.\\s*\\d+",
+      "match_type": "regex",
+      "field": "circular_number",
+      "example": "A.P. (DIR Series) Circular No. 15",
+      "weight": 1.0,
+      "notes": "FEMA / AD Category circular format."
+    },
+    {
+      "id": "CN-005",
+      "pattern": "FEMA\\s+\\d+(?:\\([A-Z]+\\))?/\\d{4}-RB",
+      "match_type": "regex",
+      "field": "circular_number",
+      "example": "FEMA 120(R)/2004-RB",
+      "weight": 1.0
+    },
+    {
+      "id": "CN-006",
+      "pattern": "Master\\s+Direction\\s+[-–]\\s+[A-Za-z ]+(?:,\\s+\\d{4})?",
+      "match_type": "regex",
+      "field": "document_type",
+      "resolved_value": "master_direction",
+      "example": "Master Direction - Know Your Customer (KYC) Direction, 2016",
+      "weight": 1.0
+    },
+    {
+      "id": "CN-007",
+      "pattern": "Master\\s+Circular\\s+(?:on|–|-)\\s+[A-Za-z ,]+(?:,\\s+\\d{4})?",
+      "match_type": "regex",
+      "field": "document_type",
+      "resolved_value": "master_circular",
+      "example": "Master Circular – Prudential Norms on Income Recognition, 2024",
+      "weight": 1.0
+    },
+    {
+      "id": "CN-008",
+      "pattern": "Notification\\s+No\\.\\s*[A-Z.]+\\d+/\\d{4}",
+      "match_type": "regex",
+      "field": "circular_number",
+      "example": "Notification No. FEMA.395/2019",
+      "weight": 0.9
+    }
+  ],
+  "date_patterns": [
+    {
+      "id": "DP-001",
+      "pattern": "(January|February|March|April|May|June|July|August|September|October|November|December)\\s+\\d{1,2},?\\s+\\d{4}",
+      "match_type": "regex",
+      "field": "date",
+      "weight": 1.0
+    },
+    {
+      "id": "DP-002",
+      "pattern": "\\d{1,2}(?:st|nd|rd|th)?\\s+(January|February|March|April|May|June|July|August|September|October|November|December),?\\s+\\d{4}",
+      "match_type": "regex",
+      "field": "date",
+      "weight": 1.0
+    },
+    {
+      "id": "DP-003",
+      "pattern": "\\d{2}[./-]\\d{2}[./-]\\d{4}",
+      "match_type": "regex",
+      "field": "date",
+      "weight": 0.9
+    }
+  ],
+  "source_detection": [
+    {
+      "id": "SD-001",
+      "pattern": "(?:reserve\\s+bank\\s+of\\s+india|\\bRBI/\\d{4})",
+      "match_type": "regex",
+      "source": "RBI",
+      "weight": 1.0
+    },
+    {
+      "id": "SD-002",
+      "pattern": "(?:FEMA|foreign\\s+exchange\\s+management|A\\.P\\.\\s*\\(DIR\\s*Series\\))",
+      "match_type": "regex",
+      "source": "RBI",
+      "sub_source": "FEMA",
+      "weight": 1.0
+    }
+  ],
+  "issued_by_patterns": [
+    {
+      "id": "IB-001",
+      "pattern": "(?:Governor|Deputy\\s+Governor|Executive\\s+Director|Chief\\s+General\\s+Manager)\\s+(?:Reserve\\s+Bank\\s+of\\s+India)?",
+      "match_type": "regex",
+      "field": "issued_by",
+      "weight": 0.9
+    }
+  ],
+  "amends_patterns": [
+    {
+      "id": "AM-001",
+      "pattern": "(?:supersede|amend|modify|replace|substitute)\\s+(?:the\\s+)?(?:circular|direction|notification|guideline|instruction)\\s+(?:No\\.\\s*)?([A-Z][A-Z./\\-\\d]+)",
+      "match_type": "regex",
+      "field": "amends",
+      "reference_group": 1,
+      "weight": 0.9
+    },
+    {
+      "id": "AM-002",
+      "pattern": "in\\s+partial\\s+modification\\s+of\\s+(?:our\\s+)?(?:circular|directions?)\\s+(?:No\\.\\s*)?([A-Z][A-Z./\\-\\d]+)",
+      "match_type": "regex",
+      "field": "amends",
+      "reference_group": 1,
+      "weight": 0.9
+    }
+  ]
+}

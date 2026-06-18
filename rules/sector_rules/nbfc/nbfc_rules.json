@@ -1,0 +1,92 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Sector-specific rules for NBFCs, NBFC-MFIs, HFCs, and deposit-taking NBFCs.",
+  "applies_to": ["NBFC", "NBFC-MFI", "Housing Finance Company", "NBFC-D", "NBFC-ND"],
+  "actor_overrides": [
+    {
+      "id": "NA-001",
+      "pattern": "\\bnbfc(?:-(?:mfi|nd|d|ifc|afc|hfc|p2p|aa))?(?:s)?\\b",
+      "canonical_actor": "NBFC",
+      "weight": 1.0
+    },
+    {
+      "id": "NA-002",
+      "pattern": "\\bhousing finance compan(?:y|ies)\\b|\\bhfc(?:s)?\\b",
+      "canonical_actor": "Housing Finance Company",
+      "weight": 1.0
+    },
+    {
+      "id": "NA-003",
+      "pattern": "\\bnbfc.mfi(?:s)?\\b|\\bmicro\\s*finance\\s*institution(?:s)?\\b",
+      "canonical_actor": "NBFC-MFI",
+      "weight": 1.0
+    }
+  ],
+  "domain_keyword_additions": {
+    "CapitalAdequacy": [
+      "nof", "net owned fund", "crar nbfc", "tier i capital nbfc",
+      "asset liability management", "alm", "concentration risk"
+    ],
+    "ReportingAudit": [
+      "nbs returns", "nbs-1", "nbs-2", "nbs-6", "nbs-7",
+      "annual return for nbfc", "statutory auditor certificate"
+    ],
+    "Governance": [
+      "asset liability committee", "alco", "risk management committee nbfc",
+      "internal audit function nbfc", "board approved policy nbfc"
+    ]
+  },
+  "obligation_additions": [
+    {
+      "id": "NO-001",
+      "name": "nof_maintenance",
+      "trigger_phrases": ["net owned fund", "minimum nof", "shall maintain nof of"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "capital_adequacy",
+      "severity": "critical",
+      "departments": ["Finance", "Compliance", "RiskManagement"]
+    },
+    {
+      "id": "NO-002",
+      "name": "fair_practices_code",
+      "trigger_phrases": ["fair practices code", "fpc", "shall adopt fair practices"],
+      "domain": "CustomerService",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "severity": "medium",
+      "departments": ["Compliance", "CustomerService", "Legal"]
+    },
+    {
+      "id": "NO-003",
+      "name": "alm_policy",
+      "trigger_phrases": ["asset liability management", "alm policy", "alco", "liquidity risk management nbfc"],
+      "domain": "CapitalAdequacy",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "severity": "high",
+      "departments": ["RiskManagement", "Finance", "Compliance"]
+    },
+    {
+      "id": "NO-004",
+      "name": "nbfc_registration",
+      "trigger_phrases": ["shall not commence business without", "certificate of registration", "cor"],
+      "domain": "Governance",
+      "obligation_type": "mandatory",
+      "sub_type": "approval_required",
+      "severity": "critical",
+      "departments": ["Compliance", "Legal"]
+    },
+    {
+      "id": "NO-005",
+      "name": "mfi_qualifying_asset",
+      "trigger_phrases": ["qualifying asset", "75 per cent", "85 per cent of net assets", "micro credit"],
+      "domain": "FinancialInclusion",
+      "obligation_type": "mandatory",
+      "sub_type": "compliance",
+      "severity": "high",
+      "departments": ["RiskManagement", "Compliance", "Finance"]
+    }
+  ]
+}

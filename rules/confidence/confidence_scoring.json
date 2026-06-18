@@ -1,0 +1,143 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Confidence scoring rules for obligation extractions. Base score plus additive factors.",
+  "base_score": 0.50,
+  "max_score": 0.98,
+  "min_score": 0.30,
+  "factors": [
+    {
+      "id": "CF-001",
+      "name": "shall_trigger",
+      "description": "Clause contains the word 'shall' — strong mandatory indicator.",
+      "delta": 0.20,
+      "condition": "trigger_word == 'shall'"
+    },
+    {
+      "id": "CF-002",
+      "name": "strong_trigger",
+      "description": "Clause contains 'shall ensure', 'shall submit', 'shall report', or 'shall maintain'.",
+      "delta": 0.25,
+      "condition": "trigger_word in ['shall ensure', 'shall submit', 'shall report', 'shall maintain']"
+    },
+    {
+      "id": "CF-003",
+      "name": "deadline_present",
+      "description": "A deadline was successfully extracted.",
+      "delta": 0.10,
+      "condition": "deadline.urgency != 'ongoing'"
+    },
+    {
+      "id": "CF-004",
+      "name": "exact_deadline",
+      "description": "Deadline includes an exact numeric duration or absolute date.",
+      "delta": 0.05,
+      "condition": "deadline.duration is not null or deadline.absolute_date is not null"
+    },
+    {
+      "id": "CF-005",
+      "name": "actor_identified",
+      "description": "A specific actor was matched (not just default 'Regulated Entity').",
+      "delta": 0.08,
+      "condition": "actor != 'Regulated Entity'"
+    },
+    {
+      "id": "CF-006",
+      "name": "cross_reference_present",
+      "description": "At least one cross-reference to another circular or act was found.",
+      "delta": 0.05,
+      "condition": "len(cross_references) > 0"
+    },
+    {
+      "id": "CF-007",
+      "name": "domain_high_confidence_keyword",
+      "description": "Multiple domain keywords matched, not just one.",
+      "delta": 0.05,
+      "condition": "domain_keyword_match_count > 2"
+    },
+    {
+      "id": "CF-008",
+      "name": "long_clause",
+      "description": "Clause is long enough to contain full obligation context (>80 chars).",
+      "delta": 0.05,
+      "condition": "len(clause_text) > 80"
+    },
+    {
+      "id": "CF-009",
+      "name": "llm_confirmed",
+      "description": "LLM extracted the same obligation as the regex engine (merged match).",
+      "delta": 0.10,
+      "condition": "llm_match == True"
+    },
+    {
+      "id": "CF-010",
+      "name": "evidence_items_found",
+      "description": "Multiple evidence items mapped for this obligation.",
+      "delta": 0.03,
+      "condition": "len(evidence_required) > 1"
+    },
+    {
+      "id": "CF-011",
+      "name": "missing_actor_penalty",
+      "description": "No actor detected in the clause.",
+      "delta": -0.15,
+      "condition": "actor == null or actor == ''"
+    },
+    {
+      "id": "CF-012",
+      "name": "vague_action_penalty",
+      "description": "Action text is very short or vague.",
+      "delta": -0.15,
+      "condition": "len(action) < 20"
+    },
+    {
+      "id": "CF-013",
+      "name": "may_trigger_penalty",
+      "description": "Only trigger is 'may' — discretionary, lower confidence.",
+      "delta": -0.10,
+      "condition": "trigger_word == 'may' and obligation_type == 'mandatory'"
+    },
+    {
+      "id": "CF-014",
+      "name": "conflicting_signals",
+      "description": "Both mandatory and discretionary triggers found in the same clause.",
+      "delta": -0.15,
+      "condition": "has_shall and has_may in same_clause"
+    },
+    {
+      "id": "CF-015",
+      "name": "duplicate_penalty",
+      "description": "Obligation is a near-duplicate of another in the same section.",
+      "delta": -0.25,
+      "condition": "is_duplicate == True"
+    },
+    {
+      "id": "CF-016",
+      "name": "hallucination_risk",
+      "description": "Actor does not appear in the source clause text.",
+      "delta": -0.20,
+      "condition": "actor not in clause_text (case-insensitive)"
+    },
+    {
+      "id": "CF-017",
+      "name": "conditional_clause",
+      "description": "Obligation is conditional — actual applicability depends on trigger condition.",
+      "delta": -0.05,
+      "condition": "obligation_type == 'conditional'"
+    },
+    {
+      "id": "CF-018",
+      "name": "penalty_mentioned",
+      "description": "Penalty clause found — strong signal this obligation is real.",
+      "delta": 0.08,
+      "condition": "penalty_if_missed is not null"
+    },
+    {
+      "id": "CF-019",
+      "name": "fine_amount_found",
+      "description": "A specific fine amount in INR was extracted.",
+      "delta": 0.05,
+      "condition": "fine_exposure_inr is not null"
+    }
+  ]
+}

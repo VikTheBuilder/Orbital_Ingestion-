@@ -1,0 +1,110 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Effective date extraction — when a circular or direction comes into force.",
+  "rules": [
+    {
+      "id": "ED-001",
+      "pattern": "\\bwith effect from\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "weight": 1.0
+    },
+    {
+      "id": "ED-002",
+      "pattern": "\\bwith effect from\\s+(\\d{1,2}[./-]\\d{1,2}[./-]\\d{4})\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "weight": 1.0
+    },
+    {
+      "id": "ED-003",
+      "pattern": "\\bshall come into force\\s+(?:on|from)\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "weight": 1.0
+    },
+    {
+      "id": "ED-004",
+      "pattern": "\\bshall be effective from\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "weight": 1.0
+    },
+    {
+      "id": "ED-005",
+      "pattern": "\\bshall be operative from\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "weight": 1.0
+    },
+    {
+      "id": "ED-006",
+      "pattern": "\\bthese directions shall come into effect\\s+(?:on|from)\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4})\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "weight": 1.0
+    },
+    {
+      "id": "ED-007",
+      "pattern": "\\bthese(?:\\s+master)?\\s+directions?\\s+shall\\s+(?:come into force|be applicable)\\s+(?:on|from|w\\.e\\.f\\.?)\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4}|\\d{1,2}[./-]\\d{1,2}[./-]\\d{4})\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "weight": 1.0
+    },
+    {
+      "id": "ED-008",
+      "pattern": "\\bw\\.e\\.f\\.?\\s+([A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4}|\\d{1,2}[./-]\\d{1,2}[./-]\\d{4})\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "weight": 0.95,
+      "notes": "Abbreviated form common in RBI circular amendments."
+    },
+    {
+      "id": "ED-009",
+      "pattern": "\\bimmediately upon publication\\b|\\bupon issuance\\b|\\bfrom the date of issuance\\b",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": null,
+      "resolved_date": "date_of_circular",
+      "weight": 0.9
+    },
+    {
+      "id": "ED-010",
+      "pattern": "\\bsupersede(?:s|d)?\\s+(?:the\\s+)?(?:circular|direction|instruction)\\s+([A-Z][A-Z./\\-\\d]+)",
+      "match_type": "regex",
+      "field": "amends",
+      "reference_group": 1,
+      "weight": 0.9,
+      "notes": "Amendment indicator — captures the circular being superseded."
+    },
+    {
+      "id": "ED-011",
+      "pattern": "\\b(?:effective\\s+from|with\\s+effect\\s+from|applicable\\s+from)\\s+(?:the\\s+)?financial\\s+year\\s+(\\d{4}\\s*[-–]\\s*\\d{2,4})",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "is_financial_year": true,
+      "weight": 1.0,
+      "notes": "Financial year reference — resolves to April 1 of start year."
+    },
+    {
+      "id": "ED-012",
+      "pattern": "\\b(?:effective\\s+from|with\\s+effect\\s+from|applicable\\s+from)\\s+(?:the\\s+)?FY\\s*(\\d{4}\\s*[-–]\\s*\\d{2,4})",
+      "match_type": "regex",
+      "field": "effective_date",
+      "date_group": 1,
+      "is_financial_year": true,
+      "weight": 1.0,
+      "notes": "FY abbreviation — resolves to April 1 of start year."
+    }
+  ]
+}

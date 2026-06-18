@@ -1,0 +1,169 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "Post-extraction validation rules for QA of extracted obligations. Each rule describes a check, its condition, and remediation.",
+  "rules": [
+    {
+      "id": "VAL-001",
+      "name": "missing_actor",
+      "description": "No actor was detected in the obligation.",
+      "check": "obligation.actor == null or obligation.actor == ''",
+      "severity": "warning",
+      "remediation": "Flag for LLM to infer actor from surrounding clauses or document context.",
+      "confidence_penalty": -0.15
+    },
+    {
+      "id": "VAL-002",
+      "name": "missing_deadline_for_reporting",
+      "description": "A reporting obligation has no deadline extracted.",
+      "check": "obligation.sub_type == 'reporting' and obligation.deadline.text == 'ongoing'",
+      "severity": "warning",
+      "remediation": "Re-scan the clause and surrounding text for deadline phrases. Flag for LLM.",
+      "confidence_penalty": -0.10
+    },
+    {
+      "id": "VAL-003",
+      "name": "deadline_in_action_text",
+      "description": "The action field still contains a deadline phrase like 'within X days'.",
+      "check": "regex('\\\\bwithin\\\\s+\\\\d+\\\\s+(?:days|months)', obligation.action)",
+      "severity": "warning",
+      "remediation": "Extract deadline to deadline.text and clean action text.",
+      "confidence_penalty": -0.10
+    },
+    {
+      "id": "VAL-004",
+      "name": "discretionary_marked_mandatory",
+      "description": "Obligation type is mandatory but the clause uses 'may' or 'at its discretion'.",
+      "check": "obligation.obligation_type == 'mandatory' and regex('\\\\bmay\\\\b|at its discretion', clause_text)",
+      "severity": "error",
+      "remediation": "Reclassify as discretionary unless context overrides (e.g. 'may not' = prohibition).",
+      "confidence_penalty": -0.20
+    },
+    {
+      "id": "VAL-005",
+      "name": "mandatory_marked_discretionary",
+      "description": "Obligation type is discretionary but the clause uses 'shall'.",
+      "check": "obligation.obligation_type == 'discretionary' and regex('\\\\bshall\\\\b', clause_text)",
+      "severity": "error",
+      "remediation": "Reclassify as mandatory.",
+      "confidence_penalty": -0.20
+    },
+    {
+      "id": "VAL-006",
+      "name": "vague_action",
+      "description": "Action text is too short or uses vague placeholder language.",
+      "check": "len(obligation.action) < 20 or obligation.action in ['Review the clause manually.', 'Be compliant.']",
+      "severity": "warning",
+      "remediation": "Flag for LLM to generate a cleaner, summarised action description.",
+      "confidence_penalty": -0.15
+    },
+    {
+      "id": "VAL-007",
+      "name": "verbatim_action",
+      "description": "Action text is a near-verbatim copy of the raw clause (>80% similarity).",
+      "check": "similarity(obligation.action, clause_text) > 0.80",
+      "severity": "warning",
+      "remediation": "Flag for LLM to summarise rather than copy.",
+      "confidence_penalty": -0.10
+    },
+    {
+      "id": "VAL-008",
+      "name": "duplicate_obligation",
+      "description": "Two obligations in the same section have >88% action similarity and the same actor.",
+      "check": "similarity(ob1.action, ob2.action) > 0.88 and ob1.actor == ob2.actor and ob1.section_id == ob2.section_id",
+      "severity": "warning",
+      "remediation": "Merge the lower-confidence obligation into the higher-confidence one.",
+      "confidence_penalty": -0.25
+    },
+    {
+      "id": "VAL-009",
+      "name": "missing_effective_date",
+      "description": "Document contains 'with effect from' or 'come into force' but no effective_date was extracted.",
+      "check": "regex('with effect from|come into force', doc.raw_text) and doc.effective_date == null",
+      "severity": "warning",
+      "remediation": "Re-run effective date extraction rules (ED-001 through ED-009).",
+      "confidence_penalty": -0.05
+    },
+    {
+      "id": "VAL-010",
+      "name": "incorrect_department_mapping",
+      "description": "Departments do not align with the expected mapping for the obligation's domain.",
+      "check": "sorted(obligation.departments) != sorted(expected_departments(obligation.domain))",
+      "severity": "warning",
+      "remediation": "Re-apply department_mapping.json rules. Use keyword_signals for additional departments.",
+      "confidence_penalty": -0.05
+    },
+    {
+      "id": "VAL-011",
+      "name": "shall_clause_not_extracted",
+      "description": "A clause in the document contains 'shall' but produced no extracted obligation.",
+      "check": "regex('\\\\bshall\\\\b', clause_text) and no_matching_obligation(clause_text, obligations)",
+      "severity": "error",
+      "remediation": "Force re-extract the clause. Escalate to LLM if still missed.",
+      "confidence_penalty": 0
+    },
+    {
+      "id": "VAL-012",
+      "name": "contradictory_obligations",
+      "description": "Two obligations in the same document contradict each other (one says shall, another says shall not for same actor and action).",
+      "check": "ob1.actor == ob2.actor and similarity(ob1.action, ob2.action) > 0.7 and ob1.obligation_type == 'mandatory' and ob2.obligation_type == 'prohibition'",
+      "severity": "error",
+      "remediation": "Flag both obligations. Use clause hierarchy (later clause overrides earlier) or LLM resolution.",
+      "confidence_penalty": -0.30
+    },
+    {
+      "id": "VAL-013",
+      "name": "missing_cross_reference",
+      "description": "Clause text mentions another circular or act but no cross_reference was captured.",
+      "check": "regex('(?:circular|direction|guidelines?|as per|in accordance with)', clause_text) and len(obligation.cross_references) == 0",
+      "severity": "info",
+      "remediation": "Re-run cross_reference_patterns.json on this clause.",
+      "confidence_penalty": -0.05
+    },
+    {
+      "id": "VAL-014",
+      "name": "fine_not_captured",
+      "description": "Clause mentions rupees or INR but fine_exposure_inr is null.",
+      "check": "regex('(?:Rs\\\\.?|INR)\\\\s*[\\\\d,]+', clause_text) and obligation.fine_exposure_inr == null",
+      "severity": "info",
+      "remediation": "Re-run fine extraction regex on this clause.",
+      "confidence_penalty": -0.05
+    },
+    {
+      "id": "VAL-015",
+      "name": "prohibited_activity_low_severity",
+      "description": "A prohibition obligation is classified as medium or low severity.",
+      "check": "obligation.obligation_type == 'prohibition' and obligation.severity in ['low', 'medium']",
+      "severity": "warning",
+      "remediation": "Elevate to high severity minimum for prohibition obligations.",
+      "confidence_penalty": -0.10
+    },
+    {
+      "id": "VAL-016",
+      "name": "hallucination_check_actor",
+      "description": "Actor name does not appear anywhere in the clause or document.",
+      "check": "obligation.actor.lower() not in clause_text.lower() and obligation.actor.lower() not in doc_header.lower()",
+      "severity": "warning",
+      "remediation": "LLM may have hallucinated the actor. Default to 'Regulated Entity' and re-confirm.",
+      "confidence_penalty": -0.20
+    },
+    {
+      "id": "VAL-017",
+      "name": "effective_date_before_circular_date",
+      "description": "Extracted effective_date is earlier than the circular's issued date.",
+      "check": "doc.effective_date < doc.date",
+      "severity": "info",
+      "remediation": "This is valid for retrospective amendments. Flag for human review.",
+      "confidence_penalty": 0
+    },
+    {
+      "id": "VAL-018",
+      "name": "confidence_too_low",
+      "description": "Obligation confidence is below minimum threshold.",
+      "check": "obligation.confidence < 0.65",
+      "severity": "warning",
+      "remediation": "Either drop this obligation or escalate to LLM for re-evaluation.",
+      "confidence_penalty": 0
+    }
+  ]
+}

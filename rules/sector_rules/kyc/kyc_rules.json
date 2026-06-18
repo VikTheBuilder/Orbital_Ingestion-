@@ -1,0 +1,88 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-17",
+  "description": "KYC-specific rule pack covering customer due diligence, risk categorisation, periodic updation, and video-based KYC.",
+  "applies_to": ["Bank", "NBFC", "Payment System Operator", "Regulated Entity"],
+  "obligation_additions": [
+    {
+      "id": "KO-001",
+      "name": "cdd_at_account_opening",
+      "trigger_phrases": ["before establishing a business relationship", "at account opening", "shall obtain and verify"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "kyc_due_diligence",
+      "severity": "high",
+      "departments": ["AML_KYC", "Operations", "BranchNetwork"]
+    },
+    {
+      "id": "KO-002",
+      "name": "periodic_kyc_updation",
+      "trigger_phrases": ["periodic updation", "re-kyc", "kyc refresh", "every two years", "every ten years"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "kyc_due_diligence",
+      "severity": "high",
+      "departments": ["AML_KYC", "Operations"]
+    },
+    {
+      "id": "KO-003",
+      "name": "enhanced_due_diligence",
+      "trigger_phrases": ["enhanced due diligence", "edd", "politically exposed person", "pep", "high risk customer", "high risk country"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "kyc_due_diligence",
+      "severity": "critical",
+      "departments": ["AML_KYC", "Compliance", "Operations"]
+    },
+    {
+      "id": "KO-004",
+      "name": "beneficial_ownership",
+      "trigger_phrases": ["beneficial owner", "ubo", "ultimate beneficial owner", "25 per cent", "controlling interest"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "kyc_due_diligence",
+      "severity": "high",
+      "departments": ["AML_KYC", "Legal", "Compliance"]
+    },
+    {
+      "id": "KO-005",
+      "name": "vkyc_procedure",
+      "trigger_phrases": ["v-cip", "video based customer identification", "video kyc", "vkyc"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "implementation",
+      "severity": "medium",
+      "departments": ["DigitalBanking", "IT", "AML_KYC"]
+    },
+    {
+      "id": "KO-006",
+      "name": "account_freeze_restriction",
+      "trigger_phrases": ["shall not allow", "shall restrict operations", "shall freeze", "pending kyc updation"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "prohibited_activity",
+      "severity": "high",
+      "departments": ["AML_KYC", "Operations", "Compliance"]
+    },
+    {
+      "id": "KO-007",
+      "name": "customer_risk_categorisation",
+      "trigger_phrases": ["risk based approach", "risk categorise", "low risk", "medium risk", "high risk", "customer risk profile"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "governance",
+      "severity": "medium",
+      "departments": ["AML_KYC", "RiskManagement", "Compliance"]
+    },
+    {
+      "id": "KO-008",
+      "name": "small_account_monitoring",
+      "trigger_phrases": ["small account", "aggregate credit", "aggregate withdrawal", "aggregate transfers"],
+      "domain": "KYC_AML",
+      "obligation_type": "mandatory",
+      "sub_type": "compliance",
+      "severity": "medium",
+      "departments": ["AML_KYC", "Operations"]
+    }
+  ]
+}
