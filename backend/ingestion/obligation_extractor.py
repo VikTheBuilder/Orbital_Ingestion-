@@ -678,9 +678,21 @@ def _merge_section_group(group: List[ObligationSchema]) -> ObligationSchema:
     # ── Reconcile actor & departments ─────────────────────────────────────
     actor, departments, conflict_notes = _reconcile_actor_departments(ranked)
 
+    # ── Reconcile obligation types ─────────────────────────────────────────
+    def _otype_rank(otype: str) -> int:
+        return {"mandatory": 3, "time_bound": 2, "conditional": 1, "discretionary": 0}.get(otype, 0)
+
+    best_otype = primary.obligation_type
+    mixed_types = False
+    for ob in others:
+        if ob.obligation_type != primary.obligation_type:
+            mixed_types = True
+        if _otype_rank(ob.obligation_type) > _otype_rank(best_otype):
+            best_otype = ob.obligation_type
+
     # ── Build combined action with sub-actions ────────────────────────────
     # Collect unique sub-actions (avoid repeating the primary's action).
-    sub_actions: list[str] = []
+    sub_actions: list[tuple[str, str]] = []  # (action, otype)
     seen_actions: set[str] = {primary.action.lower()}
     for ob in others:
         normalised = ob.action.lower()
@@ -688,15 +700,32 @@ def _merge_section_group(group: List[ObligationSchema]) -> ObligationSchema:
         if any(SequenceMatcher(None, normalised, s).ratio() > 0.70 for s in seen_actions):
             continue
         seen_actions.add(normalised)
-        sub_actions.append(ob.action.rstrip("."))
+        sub_actions.append((ob.action.rstrip("."), ob.obligation_type))
 
     if sub_actions:
         bullet_list = "; ".join(
-            f"({chr(97 + i)}) {sa}" for i, sa in enumerate(sub_actions)
+            f"({chr(97 + i)}) {sa[0]}" for i, sa in enumerate(sub_actions)
         )
         combined_action = f"{primary.action.rstrip('.')}. Sub-requirements: {bullet_list}."
     else:
         combined_action = primary.action
+
+    otype_note = ""
+    if mixed_types and sub_actions:
+        type_mapping = {primary.obligation_type: ["primary"]}
+        for i, sa in enumerate(sub_actions):
+            otype = sa[1]
+            if otype not in type_mapping:
+                type_mapping[otype] = []
+            type_mapping[otype].append(f"({chr(97 + i)})")
+        
+        mapping_strs = []
+        for otype, items in type_mapping.items():
+            # Format: "mandatory": ["primary", "(a)"]
+            quoted_items = ", ".join(f'"{item}"' for item in items)
+            mapping_strs.append(f'"{otype}": [{quoted_items}]')
+            
+        otype_note = f"[mixed_obligation_types: {{{', '.join(mapping_strs)}}}]"
 
     # ── Merge ancillary fields ────────────────────────────────────────────
     # Evidence: union of all evidence items
@@ -746,6 +775,8 @@ def _merge_section_group(group: List[ObligationSchema]) -> ObligationSchema:
         merged_notes_parts.append(primary.notes.strip())
     if conflict_notes:
         merged_notes_parts.append(conflict_notes)
+    if otype_note:
+        merged_notes_parts.append(otype_note)
     merged_notes_parts.append(
         f"[merged {len(group)} sub-clause obligations into one record]"
     )
@@ -757,7 +788,7 @@ def _merge_section_group(group: List[ObligationSchema]) -> ObligationSchema:
         clause_number=primary.clause_number,
         actor=actor,
         action=combined_action,
-        obligation_type=primary.obligation_type,
+        obligation_type=best_otype,
         trigger=primary.trigger,
         deadline=best_deadline,
         domain=primary.domain,

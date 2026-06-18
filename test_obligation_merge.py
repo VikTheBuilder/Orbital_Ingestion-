@@ -129,3 +129,38 @@ def test_actor_reconciliation_prefers_specific_over_generic():
     actor, depts, conflict = _reconcile_actor_departments(ranked)
     assert actor == "FRBs/Reinsurers", "Specific actor preferred over generic"
     assert "Regulated Entity" in conflict, "Conflict note mentions 'Regulated Entity'"
+
+def test_mixed_obligation_types_merge():
+    # Synthetic IRDAI section-4 case
+    obligations = [
+        # Primary is mandatory
+        _make_obligation("4-OB1", "4", "FRBs/Reinsurers", "Ensure no premium is accrued on estimate basis.", confidence=0.95),
+        
+        # Sub-point a (mandatory)
+        _make_obligation("4-OB2", "4", "FRBs/Reinsurers", "Follow consistent methodology.", confidence=0.85),
+        
+        # Q4 carve-out (discretionary)
+        _make_obligation("4-OB3", "4", "FRBs/Reinsurers", "For the fourth quarter the premium may be accounted on estimation basis.", confidence=0.80),
+        
+        # Sub-point b (mandatory)
+        _make_obligation("4-OB4", "4", "FRBs/Reinsurers", "True up estimates as actual values emerge.", confidence=0.80),
+    ]
+    
+    # Manually override the types since _make_obligation defaults to mandatory
+    obligations[0].obligation_type = "mandatory"
+    obligations[1].obligation_type = "mandatory"
+    obligations[2].obligation_type = "discretionary"
+    obligations[3].obligation_type = "mandatory"
+
+    result = _deduplicate_and_merge(obligations)
+    assert len(result) == 1, "Should merge into 1 obligation"
+    
+    merged = result[0]
+    
+    assert merged.obligation_type == "mandatory", "Merged obligation_type should be the most restrictive (mandatory)"
+    
+    # Check that the notes explicitly identify the mixed types
+    assert "mixed_obligation_types" in merged.notes, "Notes should flag mixed_obligation_types"
+    assert '"mandatory": ["primary", "(a)", "(c)"]' in merged.notes, "Notes should list mandatory sub-actions correctly"
+    assert '"discretionary": ["(b)"]' in merged.notes, "Notes should list discretionary sub-actions correctly"
+

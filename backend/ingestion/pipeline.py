@@ -211,6 +211,7 @@ def run_pipeline(pdf_path: str, source: str) -> PipelineResultSchema:
             validation_result: ValidationResultSchema = validate_extraction(
                 raw_text=text_result["full_text"],
                 obligations=obligations,
+                doc_effective_date=doc_structure.effective_date,
             )
         else:
             validation_result = ValidationResultSchema(
@@ -229,7 +230,7 @@ def run_pipeline(pdf_path: str, source: str) -> PipelineResultSchema:
             warnings_list.append(
                 f"Validation found {len(validation_result.missed_obligations)} potentially missed obligation(s)"
             )
-        if validation_result.missing_effective_date:
+        if validation_result.missing_effective_date and not doc_structure.effective_date:
             warnings_list.append(
                 f"Effective date not captured: {validation_result.missing_effective_date}"
             )

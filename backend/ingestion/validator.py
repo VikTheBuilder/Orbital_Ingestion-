@@ -27,7 +27,7 @@ CLAUSE_LINE_RE = re.compile(
 )
 
 
-def validate_extraction(raw_text: str, obligations: list[ObligationSchema] | list[dict]) -> ValidationResultSchema:
+def validate_extraction(raw_text: str, obligations: list[ObligationSchema] | list[dict], doc_effective_date: str | None = None) -> ValidationResultSchema:
     """Validate extracted obligations against raw document text."""
     try:
         normalized_obligations = [_coerce_obligation(item) for item in obligations]
@@ -36,7 +36,22 @@ def validate_extraction(raw_text: str, obligations: list[ObligationSchema] | lis
         llm_result = _validate_with_llm(raw_text, normalized_obligations)
         heuristic_result = _validate_with_heuristics(raw_text, normalized_obligations)
 
-        return _merge_results(llm_result, heuristic_result)
+        merged = _merge_results(llm_result, heuristic_result)
+
+        # If document already extracted effective date, suppress validator false positives
+        if doc_effective_date:
+            merged.missing_effective_date = None
+            merged.missed_obligations = [
+                m for m in merged.missed_obligations
+                if not (
+                    "effective date" in m.reason_missed.lower() 
+                    or "come into force" in m.raw_text.lower() 
+                    or "effect from" in m.raw_text.lower()
+                    or "effective from" in m.raw_text.lower()
+                )
+            ]
+
+        return merged
     except Exception as e:
         logger.error("Extraction validation failed", error=str(e))
         return ValidationResultSchema(
