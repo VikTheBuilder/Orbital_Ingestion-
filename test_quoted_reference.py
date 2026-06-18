@@ -9,6 +9,7 @@ Tests that:
 
 import sys
 import os
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -19,114 +20,66 @@ from backend.ingestion.structure_extractor import (
     _is_quoted_block,
 )
 from backend.ingestion.schemas import SectionSchema
+from backend.ingestion.obligation_extractor import SKIP_CLAUSE_TYPES
 
+@pytest.fixture
+def engine():
+    return RuleEngine()
 
-def test_quoted_reference():
-    engine = RuleEngine()
-
-    passed = 0
-    failed = 0
-
-    def check(description, actual, expected):
-        nonlocal passed, failed
-        status = "PASS" if actual == expected else "FAIL"
-        if status == "FAIL":
-            failed += 1
-            print(f"  [{status}] {description}")
-            print(f"         Expected: {expected}")
-            print(f"         Actual:   {actual}")
-        else:
-            passed += 1
-            print(f"  [{status}] {description} -> {actual}")
-
-    # ── Test 1: Rule engine classify_clause_type ──
-    print("\n=== Test 1: Rule engine clause type classification ===")
-
-    check(
+@pytest.mark.parametrize("description, text, expected", [
+    (
         "Section with 'provides as under' (lead-in for quotation)",
-        engine.classify_clause_type(
-            "1. At present, para 2 of Part I of Schedule B of the Insurance Regulatory "
-            "and Development Authority Regulations, 2002 provides as under for "
-            'recognition of premium: "2. Premium'
-        ),
+        "1. At present, para 2 of Part I of Schedule B of the Insurance Regulatory "
+        "and Development Authority Regulations, 2002 provides as under for "
+        'recognition of premium: "2. Premium',
         "quoted_reference"
-    )
-
-    check(
+    ),
+    (
         "Section with 'reads as follows'",
-        engine.classify_clause_type(
-            "The relevant provision of the Act reads as follows: "
-            '"Every bank shall maintain a minimum capital."'
-        ),
+        "The relevant provision of the Act reads as follows: "
+        '"Every bank shall maintain a minimum capital."',
         "quoted_reference"
-    )
-
-    check(
+    ),
+    (
         "Regular obligation (shall maintain) - NOT quoted",
-        engine.classify_clause_type(
-            "The bank shall maintain adequate capital ratios at all times."
-        ),
+        "The bank shall maintain adequate capital ratios at all times.",
         "obligation"
-    )
-
-    check(
+    ),
+    (
         "Regular definition - NOT quoted",
-        engine.classify_clause_type(
-            '"Regulated Entity" means a bank or NBFC regulated by the Reserve Bank.'
-        ),
+        '"Regulated Entity" means a bank or NBFC regulated by the Reserve Bank.',
         "definition"
-    )
+    ),
+])
+def test_rule_engine_clause_type_classification(engine, description, text, expected):
+    assert engine.classify_clause_type(text) == expected, description
 
-    # ── Test 2: Fallback _classify_clause_type ──
-    print("\n=== Test 2: Fallback _classify_clause_type ===")
-
-    check(
+@pytest.mark.parametrize("description, text, expected", [
+    (
         "Fallback: text with 'provides as under'",
-        _classify_clause_type(
-            "Regulation 5 provides as under for premium recognition: "
-            '"Premium shall be recognized as income."'
-        ),
+        "Regulation 5 provides as under for premium recognition: "
+        '"Premium shall be recognized as income."',
         "quoted_reference"
-    )
-
-    check(
+    ),
+    (
         "Fallback: regular obligation",
-        _classify_clause_type(
-            "All insurers shall submit quarterly returns."
-        ),
+        "All insurers shall submit quarterly returns.",
         "obligation"
-    )
+    ),
+])
+def test_fallback_classify_clause_type(description, text, expected):
+    assert _classify_clause_type(text) == expected, description
 
-    # ── Test 3: _is_quoted_block ──
-    print("\n=== Test 3: _is_quoted_block detection ===")
+@pytest.mark.parametrize("description, text, expected", [
+    ("Smart-quoted block", '\u201cPremium shall be recognized as income over the contract period.\u201d', True),
+    ("Regular-quoted block", '"Premium shall be recognized as income."', True),
+    ("Numbered clause with smart quotes", '(i) \u201cPremium shall be recognized as income.\u201d', True),
+    ("Not a quoted block", "The bank shall maintain adequate capital.", False),
+])
+def test_is_quoted_block_detection(description, text, expected):
+    assert _is_quoted_block(text) == expected, description
 
-    check(
-        "Smart-quoted block",
-        _is_quoted_block('\u201cPremium shall be recognized as income over the contract period.\u201d'),
-        True
-    )
-
-    check(
-        "Regular-quoted block",
-        _is_quoted_block('"Premium shall be recognized as income."'),
-        True
-    )
-
-    check(
-        "Numbered clause with smart quotes",
-        _is_quoted_block('(i) \u201cPremium shall be recognized as income.\u201d'),
-        True
-    )
-
-    check(
-        "Not a quoted block",
-        _is_quoted_block("The bank shall maintain adequate capital."),
-        False
-    )
-
-    # ── Test 4: _propagate_quoted_reference ──
-    print("\n=== Test 4: Parent-to-child quote propagation ===")
-
+def test_propagate_quoted_reference():
     sections = [
         SectionSchema(
             id="1", heading="Para 1",
@@ -162,47 +115,12 @@ def test_quoted_reference():
 
     _propagate_quoted_reference(sections)
 
-    check(
-        "Parent section 1 (has lead-in) -> quoted_reference",
-        sections[0].clause_type, "quoted_reference"
-    )
-    check(
-        "Child (i) under section 1 -> quoted_reference",
-        sections[1].clause_type, "quoted_reference"
-    )
-    check(
-        "Child (ii) under section 1 -> quoted_reference",
-        sections[2].clause_type, "quoted_reference"
-    )
-    check(
-        "Child (iii) under section 1 -> quoted_reference",
-        sections[3].clause_type, "quoted_reference"
-    )
-    check(
-        "Section 2 (next same-level) -> NOT quoted (stays 'other')",
-        sections[4].clause_type, "other"
-    )
-    check(
-        "Section 4 (real obligation) -> NOT quoted (stays 'obligation')",
-        sections[5].clause_type, "obligation"
-    )
+    assert sections[0].clause_type == "quoted_reference", "Parent section 1 (has lead-in) -> quoted_reference"
+    assert sections[1].clause_type == "quoted_reference", "Child (i) under section 1 -> quoted_reference"
+    assert sections[2].clause_type == "quoted_reference", "Child (ii) under section 1 -> quoted_reference"
+    assert sections[3].clause_type == "quoted_reference", "Child (iii) under section 1 -> quoted_reference"
+    assert sections[4].clause_type == "other", "Section 2 (next same-level) -> NOT quoted (stays 'other')"
+    assert sections[5].clause_type == "obligation", "Section 4 (real obligation) -> NOT quoted (stays 'obligation')"
 
-    # ── Test 5: Obligation extractor skips quoted_reference ──
-    print("\n=== Test 5: SKIP_CLAUSE_TYPES includes quoted_reference ===")
-    from backend.ingestion.obligation_extractor import SKIP_CLAUSE_TYPES
-    check(
-        "quoted_reference in SKIP_CLAUSE_TYPES",
-        "quoted_reference" in SKIP_CLAUSE_TYPES,
-        True
-    )
-
-    print(f"\n{'='*60}")
-    print(f"Results: {passed} passed, {failed} failed, {passed + failed} total")
-    print(f"{'='*60}")
-
-    return failed == 0
-
-
-if __name__ == "__main__":
-    success = test_quoted_reference()
-    sys.exit(0 if success else 1)
+def test_skip_clause_types_includes_quoted_reference():
+    assert "quoted_reference" in SKIP_CLAUSE_TYPES, "quoted_reference in SKIP_CLAUSE_TYPES"

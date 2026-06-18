@@ -9,147 +9,58 @@ Tests that:
 
 import sys
 import os
+import pytest
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from backend.core.rule_engine import RuleEngine
 
-def test_source_scoped_actors():
-    engine = RuleEngine()
-    
-    passed = 0
-    failed = 0
-    
-    def check(description, actual, expected):
-        nonlocal passed, failed
-        status = "PASS" if actual == expected else "FAIL"
-        if status == "FAIL":
-            failed += 1
-            print(f"  [{status}] {description}")
-            print(f"         Expected: {expected}")
-            print(f"         Actual:   {actual}")
-        else:
-            passed += 1
-            print(f"  [{status}] {description} -> {actual}")
-    
-    print("\n=== Test 1: IRDAI documents should NOT match 'Bank' ===")
-    check(
-        "Premium shall be recognized as income (IRDAI)",
-        engine.find_actor("Premium shall be recognized as income over the contract period", source="IRDAI"),
-        "Regulated Entity"
-    )
-    check(
-        "The bank shall submit (IRDAI) - 'bank' scoped out",
-        engine.find_actor("the bank shall submit the report", source="IRDAI"),
-        "Regulated Entity"
-    )
-    check(
-        "Banks shall comply (IRDAI) - 'banks' scoped out",
-        engine.find_actor("banks shall comply with these directions", source="IRDAI"),
-        "Regulated Entity"
-    )
-    
-    print("\n=== Test 2: RBI documents should STILL match 'Bank' ===")
-    check(
-        "The bank shall submit (RBI)",
-        engine.find_actor("the bank shall submit the report", source="RBI"),
-        "Bank"
-    )
-    check(
-        "Banks shall comply (RBI)",
-        engine.find_actor("banks shall comply with these directions", source="RBI"),
-        "Bank"
-    )
-    check(
-        "Scheduled commercial banks shall (RBI)",
-        engine.find_actor("scheduled commercial banks shall maintain", source="RBI"),
-        "Scheduled Commercial Bank"
-    )
-    
-    print("\n=== Test 3: IRDAI-specific actors are detected ===")
-    check(
-        "the insurer shall ensure (IRDAI)",
-        engine.find_actor("the insurer shall ensure compliance", source="IRDAI"),
-        "Insurer"
-    )
-    check(
-        "the reinsurer shall (IRDAI)",
-        engine.find_actor("the reinsurer shall submit the accounts", source="IRDAI"),
-        "Reinsurer"
-    )
-    check(
-        "FRBs/Reinsurers shall ensure (IRDAI)",
-        engine.find_actor("FRBs/Reinsurers shall ensure that in annual financial statements", source="IRDAI"),
-        "FRBs/Reinsurers"
-    )
-    check(
-        "GIC Re shall (IRDAI)",
-        engine.find_actor("GIC Re shall report the premium", source="IRDAI"),
-        "GIC Re"
-    )
-    check(
-        "insurance company shall (IRDAI)",
-        engine.find_actor("the insurance company shall maintain records", source="IRDAI"),
-        "Insurer"
-    )
-    check(
-        "appointed actuary shall (IRDAI)",
-        engine.find_actor("the appointed actuary shall certify", source="IRDAI"),
-        "Appointed Actuary"
-    )
-    check(
-        "policyholder (IRDAI)",
-        engine.find_actor("the policyholder shall submit documents", source="IRDAI"),
-        "Policyholder"
-    )
-    
-    print("\n=== Test 4: Universal actors work for ALL sources ===")
-    check(
-        "Board of Directors (IRDAI)",
-        engine.find_actor("the Board of Directors shall approve", source="IRDAI"),
-        "Board of Directors"
-    )
-    check(
-        "Board of Directors (RBI)",
-        engine.find_actor("the Board of Directors shall approve", source="RBI"),
-        "Board of Directors"
-    )
-    check(
-        "CEO (IRDAI)",
-        engine.find_actor("the Chief Executive Officer shall ensure", source="IRDAI"),
-        "Chief Executive Officer"
-    )
-    check(
-        "Regulated Entity (IRDAI)",
-        engine.find_actor("all regulated entities shall comply", source="IRDAI"),
-        "Regulated Entity"
-    )
-    check(
-        "Auditor (IRDAI)",
-        engine.find_actor("the statutory auditor shall verify", source="IRDAI"),
-        "Auditor"
-    )
-    
-    print("\n=== Test 5: Backward compatibility - no source param ===")
-    check(
-        "The bank shall (no source) - all patterns active",
-        engine.find_actor("the bank shall submit the report"),
-        "Bank"
-    )
-    check(
-        "Board of Directors (no source)",
-        engine.find_actor("the Board of Directors shall approve"),
-        "Board of Directors"
-    )
-    
-    print(f"\n{'='*60}")
-    print(f"Results: {passed} passed, {failed} failed, {passed + failed} total")
-    print(f"{'='*60}")
-    
-    return failed == 0
+@pytest.fixture
+def engine():
+    return RuleEngine()
 
+@pytest.mark.parametrize("description, text, source, expected", [
+    ("Premium shall be recognized as income (IRDAI)", "Premium shall be recognized as income over the contract period", "IRDAI", "Regulated Entity"),
+    ("The bank shall submit (IRDAI) - 'bank' scoped out", "the bank shall submit the report", "IRDAI", "Regulated Entity"),
+    ("Banks shall comply (IRDAI) - 'banks' scoped out", "banks shall comply with these directions", "IRDAI", "Regulated Entity"),
+])
+def test_irdai_should_not_match_bank(engine, description, text, source, expected):
+    assert engine.find_actor(text, source=source) == expected, description
 
-if __name__ == "__main__":
-    success = test_source_scoped_actors()
-    sys.exit(0 if success else 1)
+@pytest.mark.parametrize("description, text, source, expected", [
+    ("The bank shall submit (RBI)", "the bank shall submit the report", "RBI", "Bank"),
+    ("Banks shall comply (RBI)", "banks shall comply with these directions", "RBI", "Bank"),
+    ("Scheduled commercial banks shall (RBI)", "scheduled commercial banks shall maintain", "RBI", "Scheduled Commercial Bank"),
+])
+def test_rbi_should_match_bank(engine, description, text, source, expected):
+    assert engine.find_actor(text, source=source) == expected, description
+
+@pytest.mark.parametrize("description, text, source, expected", [
+    ("the insurer shall ensure (IRDAI)", "the insurer shall ensure compliance", "IRDAI", "Insurer"),
+    ("the reinsurer shall (IRDAI)", "the reinsurer shall submit the accounts", "IRDAI", "Reinsurer"),
+    ("FRBs/Reinsurers shall ensure (IRDAI)", "FRBs/Reinsurers shall ensure that in annual financial statements", "IRDAI", "FRBs/Reinsurers"),
+    ("GIC Re shall (IRDAI)", "GIC Re shall report the premium", "IRDAI", "GIC Re"),
+    ("insurance company shall (IRDAI)", "the insurance company shall maintain records", "IRDAI", "Insurer"),
+    ("appointed actuary shall (IRDAI)", "the appointed actuary shall certify", "IRDAI", "Appointed Actuary"),
+    ("policyholder (IRDAI)", "the policyholder shall submit documents", "IRDAI", "Policyholder"),
+])
+def test_irdai_specific_actors(engine, description, text, source, expected):
+    assert engine.find_actor(text, source=source) == expected, description
+
+@pytest.mark.parametrize("description, text, source, expected", [
+    ("Board of Directors (IRDAI)", "the Board of Directors shall approve", "IRDAI", "Board of Directors"),
+    ("Board of Directors (RBI)", "the Board of Directors shall approve", "RBI", "Board of Directors"),
+    ("CEO (IRDAI)", "the Chief Executive Officer shall ensure", "IRDAI", "Chief Executive Officer"),
+    ("Regulated Entity (IRDAI)", "all regulated entities shall comply", "IRDAI", "Regulated Entity"),
+    ("Auditor (IRDAI)", "the statutory auditor shall verify", "IRDAI", "Auditor"),
+])
+def test_universal_actors_all_sources(engine, description, text, source, expected):
+    assert engine.find_actor(text, source=source) == expected, description
+
+@pytest.mark.parametrize("description, text, expected", [
+    ("The bank shall (no source) - all patterns active", "the bank shall submit the report", "Bank"),
+    ("Board of Directors (no source)", "the Board of Directors shall approve", "Board of Directors"),
+])
+def test_backward_compatibility_no_source(engine, description, text, expected):
+    assert engine.find_actor(text) == expected, description
