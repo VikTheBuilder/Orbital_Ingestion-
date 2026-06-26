@@ -69,6 +69,7 @@ class ObligationSchema(BaseModel):
         "HR_Training",
         "FEMA",
         "Other",
+        "General",
     ]
     departments: List[
         Literal[
@@ -88,6 +89,13 @@ class ObligationSchema(BaseModel):
             "FraudManagement",
             "InternalAudit",
             "RetailBanking",
+            "Payments",
+            "Finance & Accounts",
+            "Financial Inclusion",
+            "Customer Service",
+            "Human Resources",
+            "Credit Risk",
+            "Fraud Management",
         ]
     ] = []
     severity: Literal["low", "medium", "high", "critical"]
@@ -140,6 +148,7 @@ class DocumentStructureSchema(BaseModel):
     annexures: List[str] = []
     cross_references: List[str] = []
     obligations: List[ObligationSchema] = []
+    analysis: Optional[dict] = None
     validation: Optional[dict] = None  # ValidationResultSchema serialised dict
 
 

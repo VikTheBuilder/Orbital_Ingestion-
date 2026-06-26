@@ -25,6 +25,7 @@ def extract_structure(
     pages: list,
     source: str,
     pdf_path: str,
+    analysis_hints: Optional[dict] = None,
 ) -> DocumentStructureSchema:
     """Parse OCR text into the project document schema."""
     try:
@@ -32,7 +33,7 @@ def extract_structure(
         re_engine = get_rule_engine()
 
         normalized_text = _normalize_text(full_text)
-        detected_source = _extract_source(normalized_text, source)
+        detected_source = _extract_source(normalized_text, source, analysis_hints)
 
         # ── Rule Engine: metadata extraction ──
         circular_number = (
@@ -96,6 +97,7 @@ def extract_structure(
             annexures=annexures,
             cross_references=cross_references,
             obligations=[],
+            analysis=analysis_hints or None,
         )
 
     except Exception as e:
@@ -107,6 +109,7 @@ def extract_structure(
             source=fallback_source,
             title=fallback_title,
             issued_by="",
+            analysis=analysis_hints or None,
         )
 
 
@@ -119,25 +122,57 @@ def _normalize_text(text: str) -> str:
     return text.strip()
 
 
-def _extract_source(text: str, fallback: str) -> str:
+def _extract_source(text: str, fallback: str, analysis_hints: Optional[dict] = None) -> str:
     lower = text.lower()
     if "reserve bank of india" in lower or "rbi/" in lower:
         return "RBI"
     if "securities and exchange board of india" in lower or "sebi/" in lower:
         return "SEBI"
-    if "cert-in" in lower:
+    if "cert-in" in lower or "cert in" in lower:
         return "CERT-In"
     if "national payments corporation of india" in lower or "npci" in lower:
         return "NPCI"
-    if "insurance regulatory and development authority of india" in lower or "irdai" in lower:
+    if (
+        "insurance regulatory and development authority of india" in lower
+        or "insurance regulatory and development authority" in lower
+        or "irdai" in lower
+        or "irda" in lower
+    ):
         return "IRDAI"
     if "digital personal data protection" in lower or "dpdp" in lower:
         return "DPDP"
-    if "financial intelligence unit - india" in lower or "fiu-ind" in lower:
+    if "financial intelligence unit - india" in lower or "financial intelligence unit" in lower or "fiu-ind" in lower or "fiu" in lower:
         return "FIU-IND"
     if "indian banks' association" in lower or "indian banks association" in lower or "\niba" in lower:
         return "IBA"
+    if analysis_hints:
+        inferred = _infer_source_from_analysis(analysis_hints)
+        if inferred != "OTHER":
+            return inferred
     return fallback if fallback in SOURCE_VALUES else "OTHER"
+
+
+def _infer_source_from_analysis(analysis_hints: dict) -> str:
+    primary_actor = str(analysis_hints.get("primary_actor") or "").lower()
+    reasoning = str(analysis_hints.get("reasoning") or "").lower()
+    combined = f"{primary_actor} {reasoning}"
+    if "reserve bank" in combined or "rbi" in combined:
+        return "RBI"
+    if "sebi" in combined or "securities and exchange board" in combined:
+        return "SEBI"
+    if "cert-in" in combined or "cyber" in combined and "government" in combined:
+        return "CERT-In"
+    if "national payments corporation" in combined or "npci" in combined:
+        return "NPCI"
+    if "insurance regulatory" in combined or "irdai" in combined or "irda" in combined or "insurer" in combined:
+        return "IRDAI"
+    if "digital personal data" in combined or "dpdp" in combined:
+        return "DPDP"
+    if "financial intelligence unit" in combined or "fiu-ind" in combined:
+        return "FIU-IND"
+    if "indian banks" in combined or "iba" in combined:
+        return "IBA"
+    return "OTHER"
 
 
 def _extract_circular_number(text: str) -> Optional[str]:
@@ -334,9 +369,10 @@ def _extract_sections(text: str, pages: list, re_engine=None) -> list[SectionSch
                 heading=section["heading"],
                 text=text_block,
                 page_number=_get_page_number(char_offset, page_map),
-                clause_type=(
+                clause_type=_finalize_clause_type(
                     re_engine.classify_clause_type(text_block)
-                    if re_engine else _classify_clause_type(text_block)
+                    if re_engine else _classify_clause_type(text_block),
+                    text_block,
                 ),
                 level=section["level"],
             )
@@ -356,9 +392,10 @@ def _extract_sections(text: str, pages: list, re_engine=None) -> list[SectionSch
                 heading=_extract_title(text, ""),
                 text=text.strip(),
                 page_number=1 if pages else None,
-                clause_type=(
+                clause_type=_finalize_clause_type(
                     re_engine.classify_clause_type(text)
-                    if re_engine else _classify_clause_type(text)
+                    if re_engine else _classify_clause_type(text),
+                    text,
                 ),
             )
         )
@@ -458,6 +495,25 @@ def _propagate_quoted_reference(sections: list) -> None:
             i = j
         else:
             i += 1
+
+
+def _finalize_clause_type(clause_type: str, text: str) -> str:
+    """Post-process the raw clause type with deterministic override rules.
+
+    The rule-engine classifier may label boilerplate sections as 'obligation'
+    because they contain 'shall'.  These overrides take precedence:
+      - "come into force / effect" → always effective_date
+      - "shall be called / shall be known as" → other (naming clause)
+      - quoted-reference propagation is handled separately in _propagate_quoted_reference
+    """
+    lower = text.lower()
+    # Effective-date boilerplate
+    if re.search(r"come into (?:force|effect)|with effect from|shall come into (?:force|effect)", lower):
+        return "effective_date"
+    # Naming / citation boilerplate
+    if re.search(r"shall be (?:called|known as|cited as|titled)", lower) and len(text) < 300:
+        return "other"
+    return clause_type
 
 
 def _classify_clause_type(text: str) -> str:

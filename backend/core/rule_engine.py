@@ -604,8 +604,13 @@ class RuleEngine:
                 score += delta  # negative
 
         # Extra structural penalties (not in JSON — applied here directly)
-        # Verbatim action: LLM or regex just copied the raw clause
-        if action_verbatim_ratio > 0.80:
+        # Verbatim action: only penalise genuinely long blobs, not short clean
+        # passive sentences.  Threshold sourced from text_normalizer.
+        try:
+            from backend.ingestion.text_normalizer import VERBATIM_MIN_LENGTH as _VML
+        except ImportError:
+            _VML = 150
+        if action_verbatim_ratio > 0.80 and len(text) >= _VML:
             score -= 0.15
         # Obligation extracted from a non-obligation clause type without strong trigger
         if clause_type not in ("obligation", "penalty") and not (has_shall or has_strong):

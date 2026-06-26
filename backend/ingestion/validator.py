@@ -106,6 +106,8 @@ def _validate_with_heuristics(raw_text: str, obligations: list[ObligationSchema]
             )
 
     for obligation in obligations:
+        incorrect.extend(_issues_from_notes(obligation))
+
         if obligation.obligation_type == "mandatory" and _looks_discretionary(obligation):
             incorrect.append(
                 IncorrectExtractionSchema(
@@ -206,6 +208,63 @@ def _action_too_verbatim_or_vague(obligation: ObligationSchema) -> bool:
     return False
 
 
+def _issues_from_notes(obligation: ObligationSchema) -> list[IncorrectExtractionSchema]:
+    """Promote candidate-engine note tags into deterministic review findings."""
+    notes = obligation.notes or ""
+    if not notes:
+        return []
+
+    issues: list[IncorrectExtractionSchema] = []
+    field_mapping = {
+        "actor_conflict": "actor",
+        "domain_conflict": "domain",
+        "departments_conflict": "departments",
+        "severity_conflict": "severity",
+        "deadline_conflict": "deadline",
+    }
+
+    for tag, field_name in field_mapping.items():
+        match = re.search(rf"\[{tag}:\s*([^\]]+)\]", notes)
+        if not match:
+            continue
+        issues.append(
+            IncorrectExtractionSchema(
+                obligation_id=obligation.id,
+                field=field_name,
+                current_value=_current_value_for_field(obligation, field_name),
+                correct_value="review competing candidates",
+                reason=f"The candidate engine found conflicting {field_name} signals: {match.group(1)}.",
+            )
+        )
+
+    if "[action_quality: verbatim - needs review]" in notes.lower():
+        issues.append(
+            IncorrectExtractionSchema(
+                obligation_id=obligation.id,
+                field="action",
+                current_value=obligation.action,
+                correct_value="Summarized action needed",
+                reason="The candidate engine marked the action as too close to source text.",
+            )
+        )
+
+    return issues
+
+
+def _current_value_for_field(obligation: ObligationSchema, field_name: str) -> str:
+    if field_name == "actor":
+        return obligation.actor
+    if field_name == "domain":
+        return obligation.domain
+    if field_name == "departments":
+        return ", ".join(obligation.departments)
+    if field_name == "severity":
+        return obligation.severity
+    if field_name == "deadline":
+        return obligation.deadline.text
+    return ""
+
+
 def _expected_departments(obligation: ObligationSchema) -> list[str]:
     """Use the rule engine's full department mapping instead of the partial hardcoded dict."""
     re_engine = get_rule_engine()
@@ -304,8 +363,8 @@ def _apply_validation_rule_checks(obligations: list[ObligationSchema]) -> list[I
 
 def _extract_effective_date(raw_text: str) -> str | None:
     patterns = [
-        r"(?:come into force|come into effect|with effect from)\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})",
-        r"(?:come into force|come into effect|with effect from)\s+(\d{1,2}[./-]\d{1,2}[./-]\d{4})",
+        r"(?:come into force|come into effect|with effect from)\s+(?:on\s+)?([A-Za-z]+\s+\d{1,2},?\s+\d{4})",
+        r"(?:come into force|come into effect|with effect from)\s+(?:on\s+)?(\d{1,2}[./-]\d{1,2}[./-]\d{4})",
     ]
     for pattern in patterns:
         match = re.search(pattern, raw_text, re.IGNORECASE)
@@ -352,6 +411,9 @@ def _merge_results(llm_result: ValidationResultSchema, heuristic_result: Validat
     notes = heuristic_result.validation_notes
     if llm_result.validation_notes and llm_result.validation_notes not in notes:
         notes = f"{notes} {llm_result.validation_notes}".strip()
+    fix_summary = _compose_fix_summary(incorrect)
+    if fix_summary:
+        notes = f"{notes} {fix_summary}".strip()
 
     return ValidationResultSchema(
         missed_obligations=missed,
@@ -360,3 +422,15 @@ def _merge_results(llm_result: ValidationResultSchema, heuristic_result: Validat
         overall_confidence=overall_confidence,
         validation_notes=notes,
     )
+
+
+def _compose_fix_summary(incorrect: list[IncorrectExtractionSchema]) -> str:
+    """Summarise the main corrective action for the validator output."""
+    if not incorrect:
+        return ""
+
+    fixes: list[str] = []
+    for item in incorrect[:4]:
+        field = item.field.replace(".", " ")
+        fixes.append(f"fix {field} for {item.obligation_id}")
+    return f"Fix summary: {', '.join(fixes)}."

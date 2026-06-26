@@ -14,6 +14,7 @@ separately (async job, CLI, or post-processing batch).
 
 import json
 import os
+import re
 import time
 import traceback
 from collections import Counter
@@ -24,9 +25,10 @@ from backend.core.logger import get_logger
 from backend.core.llm_client import llm
 from backend.ingestion.chunker import chunk_document
 from backend.ingestion.format_detector import detect_format
+from backend.ingestion.json_repair import repair_extracted_json
 from backend.ingestion.ocr import extract_text
 from backend.ingestion.obligation_extractor import extract_obligations
-from backend.ingestion.schemas import PipelineResultSchema, ValidationResultSchema
+from backend.ingestion.schemas import DocumentStructureSchema, PipelineResultSchema, ValidationResultSchema
 from backend.ingestion.structure_extractor import extract_structure
 from backend.ingestion.validator import validate_extraction
 
@@ -59,22 +61,51 @@ def _detect_source_from_filename(filename: str) -> str:
 
 def _detect_source_from_text(text: str) -> str:
     """Detect a regulatory source from OCR/text content."""
-    lower = (text or "")[:500].lower()
+    lower = (text or "")[:4000].lower()
     if "rbi/" in lower or "reserve bank of india" in lower:
         return "RBI"
     if "sebi/" in lower or "securities and exchange board" in lower:
         return "SEBI"
-    if "cert-in" in lower or "cert-in.org" in lower:
+    if "cert-in" in lower or "cert in" in lower or "cert-in.org" in lower:
         return "CERT-In"
     if "dpdp" in lower or "digital personal data" in lower:
         return "DPDP"
-    if "fiu-ind" in lower or "financial intelligence unit" in lower:
+    if "fiu-ind" in lower or "financial intelligence unit" in lower or "fiu" in lower:
         return "FIU-IND"
     if "npci" in lower or "national payments corporation" in lower:
         return "NPCI"
-    if "irdai" in lower or "insurance regulatory and development authority" in lower:
+    if "irdai" in lower or "irda" in lower or "insurance regulatory and development authority" in lower:
         return "IRDAI"
     if "iba" in lower or "indian banks association" in lower:
+        return "IBA"
+    return "OTHER"
+
+
+def _detect_source_from_analysis(analysis: dict | None, fallback_text: str) -> str:
+    """Infer source from document-level analysis when filename/text cues are weak."""
+    if not analysis:
+        return "OTHER"
+    combined = " ".join(
+        str(analysis.get(key) or "")
+        for key in ("document_type", "primary_actor", "secondary_actors", "dominant_domains", "reasoning")
+    ).lower()
+    text_lower = (fallback_text or "")[:4000].lower()
+    haystack = f"{combined} {text_lower}"
+    if "reserve bank" in haystack or "rbi" in haystack:
+        return "RBI"
+    if "sebi" in haystack or "securities and exchange board" in haystack:
+        return "SEBI"
+    if "cert-in" in haystack or ("cert" in haystack and "cyber" in haystack):
+        return "CERT-In"
+    if "npci" in haystack or "national payments corporation" in haystack:
+        return "NPCI"
+    if "insurance regulatory" in haystack or "irdai" in haystack or "irda" in haystack or "insurer" in haystack:
+        return "IRDAI"
+    if "digital personal data" in haystack or "dpdp" in haystack:
+        return "DPDP"
+    if "financial intelligence unit" in haystack or "fiu-ind" in haystack or "fiu" in haystack:
+        return "FIU-IND"
+    if "indian banks" in haystack or "iba" in haystack:
         return "IBA"
     return "OTHER"
 
@@ -138,13 +169,38 @@ def run_pipeline(pdf_path: str, source: str) -> PipelineResultSchema:
                 source = detected
                 logger.info("Source detected from extracted text", source=source)
 
+        document_analysis = {}
+        if text_result["total_chars"] > 500:
+            document_analysis = llm.analyze_document(text_result["full_text"]) or {}
+            if not document_analysis:
+                document_analysis = _heuristic_document_analysis(
+                    text_result["full_text"],
+                    source=source,
+                )
+            if document_analysis:
+                logger.info(
+                    "Document analysis complete",
+                    primary_actor=document_analysis.get("primary_actor"),
+                    dominant_domains=document_analysis.get("dominant_domains"),
+                    confidence=document_analysis.get("analysis_confidence"),
+                )
+
+        if source == "OTHER":
+            detected_from_analysis = _detect_source_from_analysis(document_analysis, text_result["full_text"])
+            if detected_from_analysis != "OTHER":
+                source = detected_from_analysis
+                logger.info("Source inferred from document analysis", source=source)
+
         # ── Step 6: Structure extraction + Rule Engine V1 (metadata) ──────
         doc_structure = extract_structure(
             full_text=text_result["full_text"],
             pages=text_result["pages"],
             source=source,
             pdf_path=pdf_path,
+            analysis_hints=document_analysis,
         )
+        if doc_structure.source != source and doc_structure.source in VALID_SOURCES:
+            source = doc_structure.source
         logger.info(
             "Structure extraction result",
             sections=len(doc_structure.sections),
@@ -167,11 +223,25 @@ def run_pipeline(pdf_path: str, source: str) -> PipelineResultSchema:
             try:
                 with open(structured_path, "r", encoding="utf-8") as f:
                     prev_data = json.load(f)
+                repaired = repair_extracted_json(prev_data, prev_data.get("validation", {}) or {})
+                repaired_doc = repaired.get("repaired_json") or prev_data
+                repaired_validation = repaired.get("validation") or prev_data.get("validation") or {}
+                if repaired_doc != prev_data:
+                    with open(structured_path, "w", encoding="utf-8") as f:
+                        json.dump(repaired_doc, f, indent=2, ensure_ascii=False)
+                    logger.info(
+                        "Cached structured JSON repaired",
+                        path=structured_path,
+                        obligations_added=len(repaired.get("repair_summary", {}).get("obligations_added", [])),
+                        obligations_removed=len(repaired.get("repair_summary", {}).get("obligations_removed", [])),
+                        fields_corrected=len(repaired.get("repair_summary", {}).get("fields_corrected", [])),
+                    )
+                prev_data = repaired_doc
                 processing_time = time.time() - start_time
-                prev_validation = prev_data.get("validation") or {}
+                prev_validation = repaired_validation
                 return PipelineResultSchema(
                     doc_id=doc_structure.doc_id,
-                    source=source,
+                    source=prev_data.get("source", source),
                     title=prev_data.get("title", doc_structure.title),
                     total_pages=prev_data.get("total_pages", 0),
                     total_sections=len(prev_data.get("sections", [])),
@@ -234,6 +304,33 @@ def run_pipeline(pdf_path: str, source: str) -> PipelineResultSchema:
             warnings_list.append(
                 f"Effective date not captured: {validation_result.missing_effective_date}"
             )
+
+        # ── Step 9.5: Repair extracted JSON from validator findings ─────────
+        repair_result = repair_extracted_json(
+            doc_structure.model_dump(mode="json"),
+            validation_result.model_dump(mode="json"),
+        )
+        repaired_doc = repair_result.get("repaired_json") or {}
+        repaired_validation = repair_result.get("validation") or {}
+        if repaired_doc:
+            doc_structure = DocumentStructureSchema(**repaired_doc)
+            obligations = doc_structure.obligations
+            domain_counts = dict(Counter(o.domain for o in obligations))
+            severity_counts = dict(Counter(o.severity for o in obligations))
+        if repaired_validation:
+            validation_result = ValidationResultSchema(**repaired_validation)
+            doc_structure.validation = validation_result.model_dump(mode="json")
+        if repair_result.get("repair_summary"):
+            logger.info(
+                "JSON repair complete",
+                obligations_added=len(repair_result["repair_summary"].get("obligations_added", [])),
+                obligations_removed=len(repair_result["repair_summary"].get("obligations_removed", [])),
+                fields_corrected=len(repair_result["repair_summary"].get("fields_corrected", [])),
+            )
+            if validation_result.incorrect_extractions or validation_result.missed_obligations:
+                warnings_list.append(
+                    f"Repair applied: {len(repair_result['repair_summary'].get('fields_corrected', []))} field correction(s)"
+                )
 
         # ── Step 10: Chunking ──────────────────────────────────────────────
         chunks = chunk_document(doc_structure, config)
@@ -437,3 +534,82 @@ def _count_field(items: list, field: str) -> dict:
         val = item.get(field, "Unknown")
         counts[val] = counts.get(val, 0) + 1
     return counts
+
+
+def _heuristic_document_analysis(text: str, source: str, title: str = "") -> dict:
+    """Fallback global analysis when a live LLM is unavailable.
+
+    This keeps the architecture LLM-first but preserves useful context when the
+    model endpoint is missing in the current environment.
+    """
+    lower = (text or "").lower()
+    analysis = {
+        "document_type": "circular",
+        "primary_actor": _heuristic_primary_actor(lower, source),
+        "secondary_actors": [],
+        "dominant_domains": _heuristic_domains(lower),
+        "contains_quoted_regulations": bool(
+            any(phrase in lower for phrase in [
+                "provides as under",
+                "reads as follows",
+                "is reproduced below",
+                "quoted below",
+            ])
+        ),
+        "contains_enumerated_operational_clause": bool(re.search(r"(^|\n)\s*(?:\([a-z]\)|\([ivxlcdm]+\)|\d+\.)\s+", text, re.IGNORECASE)),
+        "likely_effective_date_text": _heuristic_effective_date_text(lower),
+        "core_obligation_phrases": _heuristic_core_phrases(lower),
+        "analysis_confidence": 0.55,
+        "reasoning": "Heuristic fallback analysis used because no live LLM endpoint was available.",
+    }
+    if title:
+        analysis["title_hint"] = title[:180]
+    return analysis
+
+
+def _heuristic_primary_actor(lower: str, source: str) -> str:
+    if "frbs/reinsurers" in lower:
+        return "FRBs/Reinsurers"
+    if "reinsurer" in lower or "reinsurers" in lower:
+        return "Reinsurer"
+    if "insurer" in lower or "insurers" in lower:
+        return "Insurer"
+    if source == "RBI":
+        return "Bank"
+    if source == "IRDAI":
+        return "Regulated Entity"
+    return "Regulated Entity"
+
+
+def _heuristic_domains(lower: str) -> list[str]:
+    domain_keywords = {
+        "ReportingAudit": ["report", "statement", "disclosure", "annual report", "accounts", "format"],
+        "Governance": ["board", "approval", "policy", "framework"],
+        "FinancialInclusion": ["financial inclusion"],
+        "CapitalAdequacy": ["capital", "crar", "cet1", "buffer"],
+        "FEMA": ["foreign exchange", "forex", "fema", "remittance"],
+    }
+    results = []
+    for domain, keywords in domain_keywords.items():
+        if any(kw in lower for kw in keywords):
+            results.append(domain)
+    return results or ["Other"]
+
+
+def _heuristic_effective_date_text(lower: str) -> str:
+    match = re.search(r"(financial year\s+\d{4}-\d{2})", lower)
+    if match:
+        return match.group(1)
+    match = re.search(r"(with effect from\s+[^.;]+)", lower)
+    if match:
+        return match.group(1)
+    return ""
+
+
+def _heuristic_core_phrases(lower: str) -> list[str]:
+    phrases = []
+    for clause in re.findall(r"[^.]+shall[^.]+", lower, re.IGNORECASE):
+        clause = re.sub(r"\s+", " ", clause).strip()
+        if len(clause) > 20:
+            phrases.append(clause[:180])
+    return phrases[:5]

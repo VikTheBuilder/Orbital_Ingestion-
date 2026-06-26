@@ -1,0 +1,101 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-06-19",
+  "description": "Reviewer-extensible pattern library for candidate extraction, retrieval, and confidence priors.",
+  "patterns": [
+    {
+      "pattern_id": "obligation_reporting_001",
+      "pattern_type": "reporting_pattern",
+      "regulator": "ANY",
+      "domain": "ReportingAudit",
+      "department": "Compliance",
+      "pattern_text": "shall submit report return statement in prescribed format",
+      "pattern_regex": "\\bshall\\s+(?:submit|file|furnish|report)\\b",
+      "normalized_value": "mandatory_reporting",
+      "examples": [
+        {
+          "clause_text": "Regulated entities shall submit the compliance report within 15 days.",
+          "evidence_span": "shall submit the compliance report",
+          "expected_output": {
+            "obligation_type": "mandatory",
+            "domain": "ReportingAudit"
+          },
+          "source_document_id": "seed"
+        }
+      ],
+      "negative_examples": [
+        "The previous circular submitted by the entity is referenced."
+      ],
+      "confidence": 0.9,
+      "precision": 0.0,
+      "recall": 0.0,
+      "support_count": 0,
+      "false_positive_count": 0,
+      "created_from": "historical_import",
+      "status": "approved",
+      "last_validated_at": "2026-06-19T00:00:00Z"
+    },
+    {
+      "pattern_id": "deadline_relative_001",
+      "pattern_type": "deadline_phrase",
+      "regulator": "ANY",
+      "domain": null,
+      "department": null,
+      "pattern_text": "within number days from date event",
+      "pattern_regex": "\\bwithin\\s+\\d+\\s+(?:days|working days|months)\\s+(?:from|of)\\b",
+      "normalized_value": "relative_deadline",
+      "examples": [
+        {
+          "clause_text": "The report shall be filed within 15 days from the end of the quarter.",
+          "evidence_span": "within 15 days from the end of the quarter",
+          "expected_output": {
+            "deadline_type": "RELATIVE_DATE"
+          },
+          "source_document_id": "seed"
+        }
+      ],
+      "negative_examples": [
+        "The circular dated 15 days earlier is referred to."
+      ],
+      "confidence": 0.88,
+      "precision": 0.0,
+      "recall": 0.0,
+      "support_count": 0,
+      "false_positive_count": 0,
+      "created_from": "historical_import",
+      "status": "approved",
+      "last_validated_at": "2026-06-19T00:00:00Z"
+    },
+    {
+      "pattern_id": "quote_reference_001",
+      "pattern_type": "quoted_text_pattern",
+      "regulator": "ANY",
+      "domain": null,
+      "department": null,
+      "pattern_text": "provides as under reads as follows is reproduced below existing regulations provide",
+      "pattern_regex": "\\b(?:provides as under|reads as follows|is reproduced below|existing regulations provide)\\b",
+      "normalized_value": "quoted_reference",
+      "examples": [
+        {
+          "clause_text": "The relevant provision reads as follows: Banks shall maintain records.",
+          "evidence_span": "reads as follows",
+          "expected_output": {
+            "allow_obligation_generation": false
+          },
+          "source_document_id": "seed"
+        }
+      ],
+      "negative_examples": [
+        "Accordingly, banks shall maintain records."
+      ],
+      "confidence": 0.92,
+      "precision": 0.0,
+      "recall": 0.0,
+      "support_count": 0,
+      "false_positive_count": 0,
+      "created_from": "historical_import",
+      "status": "approved",
+      "last_validated_at": "2026-06-19T00:00:00Z"
+    }
+  ]
+}

@@ -82,7 +82,9 @@ class OrbitalConfig(BaseSettings):
     # Chunking
     CHUNK_SIZE: int = 512
     CHUNK_OVERLAP: int = 64
-    MIN_OBLIGATION_CONFIDENCE: float = 0.65
+    # Confidence gates — mandatory obligations require higher evidence than discretionary
+    MIN_OBLIGATION_CONFIDENCE: float = 0.60        # mandatory / conditional
+    MIN_DISCRETIONARY_CONFIDENCE: float = 0.45     # may / permission clauses
     
     # Feature Flags
     GENERATE_FINETUNE_PAIRS: bool = True

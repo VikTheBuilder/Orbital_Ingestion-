@@ -1,911 +1,499 @@
 """
 ORBITAL Obligation Extractor
-Clause-level extraction of compliance obligations from Indian regulatory text.
-
-All deterministic work (triggers, actors, deadlines, domains, departments,
-severity, confidence) is delegated to the JSON Rule Engine.
-
-The LLM is called ONLY when:
-  - At least one obligation in a section has confidence_V1 < LLM_CONFIDENCE_GATE
-  - AND the section clause_type is 'obligation' or 'penalty'
-
-All other sections go directly to Rule Engine V2 re-scoring.
+(Rewritten to use LLM primary extraction with document context, per user request)
 """
-
+import json
+import logging
+import os
 import re
-from difflib import SequenceMatcher
-from typing import List, Optional
+import uuid
+import hashlib
+import time
+from typing import List, Optional, Dict, Any
 
+from backend.ingestion.schemas import DocumentStructureSchema, SectionSchema, ObligationSchema, DeadlineSchema
+from backend.core.llm_client import llm
 from backend.core.config import get_config
 from backend.core.logger import get_logger
-from backend.core.llm_client import llm
-from backend.core.rule_engine import get_rule_engine
-from backend.ingestion.schemas import DeadlineSchema, DocumentStructureSchema, ObligationSchema
 
 logger = get_logger(__name__)
 
-# Confidence gate: only call LLM for sections that have at least one obligation
-# below this threshold. High-confidence sections skip LLM entirely.
-LLM_CONFIDENCE_GATE = 0.85
-
-# Clause types where obligations are expected — skip extraction for others
-# unless there is a strong trigger verb present.
-OBLIGATION_CLAUSE_TYPES = {"obligation", "penalty"}
-
-# Clause types that should NEVER produce obligations (they are structural/meta)
-SKIP_CLAUSE_TYPES = {"definition", "cross_reference", "effective_date", "quoted_reference"}
-
-# Action verbatim ratio threshold — above this the action is considered a raw
-# clause copy and should be flagged / re-summarised.
-ACTION_VERBATIM_THRESHOLD = 0.80
-
-# Maximum action length before it is treated as verbatim copy
-ACTION_MAX_LENGTH = 250
-
-# Minimum action length (shorter = vague)
-ACTION_MIN_LENGTH = 20
-
-# Evidence map — domain → default evidence items
-EVIDENCE_MAP = {
-    "KYC_AML": ["Updated KYC/AML procedure", "Customer due diligence records"],
-    "Cybersecurity": ["Incident response log", "Security control evidence"],
-    "DataPrivacy": ["Data handling SOP", "Record retention evidence"],
-    "FinancialInclusion": ["Branch service continuity note", "Customer communication"],
-    "BusinessContinuity": ["BCP activation record", "Branch restoration tracker"],
-    "FraudManagement": ["Fraud monitoring report", "Exception handling log"],
-    "CapitalAdequacy": ["Capital computation sheet", "Regulatory reporting extract"],
-    "Payments": ["ATM uptime report", "Alternate service arrangement log"],
-    "CustomerService": ["Fee waiver approval", "Customer service advisory"],
-    "Governance": ["Board note or approval", "Updated governance policy"],
-    "ITInfrastructure": ["System configuration evidence", "Service deployment log"],
-    "ReportingAudit": ["Submission acknowledgement", "Audit trail or return copy"],
-    "HR_Training": ["Training completion records", "Updated staff guidance"],
-    "FEMA": ["Regulatory filing", "Treasury compliance record"],
-    "Other": ["Compliance confirmation", "Supporting internal record"],
+DOMAIN_TO_DEPT = {
+    "KYC": "Compliance",
+    "AML": "Compliance",
+    "InfoSec": "IT Security",
+    "Credit": "Credit Risk",
+    "Payments": "Payments",
+    "Fraud": "Fraud Management",
+    "HR": "Human Resources",
+    "Governance": "Board & Governance",
+    "Basel": "Finance & Accounts",
+    "FOREX": "Treasury",
+    "General": "Compliance",
+    "CapitalAdequacy": "Finance & Accounts",
+    "FinancialInclusion": "Financial Inclusion",
+    "ConsumerProtection": "Customer Service",
+    "Operations": "Operations",
 }
 
+DOMAIN_TO_EVIDENCE = {
+    "KYC": "Updated KYC records",
+    "AML": "STR filings and monitoring reports",
+    "InfoSec": "Security log",
+    "Credit": "Credit file",
+    "Payments": "Payment record",
+    "Fraud": "Fraud report",
+    "HR": "HR records",
+    "Governance": "Board note",
+    "Basel": "Basel report",
+    "FOREX": "FEMA filing",
+    "General": "Implementation report",
+    "CapitalAdequacy": "Capital computation sheet",
+    "FinancialInclusion": "Branch service continuity note",
+    "ConsumerProtection": "Customer service advisory",
+    "Operations": "Operations log",
+}
+
+SCHEMA_DOMAINS = {
+    "KYC_AML", "Cybersecurity", "DataPrivacy", "FinancialInclusion",
+    "BusinessContinuity", "FraudManagement", "CapitalAdequacy", "Payments",
+    "CustomerService", "Governance", "ITInfrastructure", "ReportingAudit",
+    "HR_Training", "FEMA", "Other"
+}
+
+def map_domain(domain: str) -> str:
+    mapping = {
+        "KYC": "KYC_AML",
+        "AML": "KYC_AML",
+        "InfoSec": "Cybersecurity",
+        "Fraud": "FraudManagement",
+        "HR": "HR_Training",
+        "Basel": "CapitalAdequacy",
+        "FOREX": "FEMA",
+        "ConsumerProtection": "CustomerService",
+    }
+    mapped = mapping.get(domain, domain)
+    if mapped in SCHEMA_DOMAINS:
+        return mapped
+    return "Other"
 
 def extract_obligations(doc_structure: DocumentStructureSchema) -> List[ObligationSchema]:
-    """Extract and normalise obligations from all document sections."""
-    try:
-        config = get_config()
-        re_engine = get_rule_engine()
-        obligations: List[ObligationSchema] = []
-
-        # Determine if this document is an amendment/preamble-heavy type.
-        # For such documents the first few sections are legislative boilerplate —
-        # suppress obligation extraction from sections 1–3 unless they contain
-        # a strong trigger verb.
-        is_amendment = bool(
-            doc_structure.amends
-            or (doc_structure.title and "amendment" in doc_structure.title.lower())
-        )
-
-        logger.info(
-            "Obligation extraction started",
+    # ─── PHASE 1 — Document-level context ─────
+    full_text_summary = build_document_summary(doc_structure)
+    doc_context = get_document_context(full_text_summary)
+    
+    # ─── PHASE 2 — Section-level extraction ───
+    all_obligations = []
+    
+    for section in doc_structure.sections:
+        if should_skip_section(section):
+            continue
+        
+        llm_obligations = extract_with_llm(
+            section_text=section.text,
+            section_heading=section.heading,
+            doc_context=doc_context,
             doc_id=doc_structure.doc_id,
-            section_count=len(doc_structure.sections),
-            is_amendment=is_amendment,
+            source=doc_structure.source,
+            section_id=section.id
         )
+        
+        regex_obligations = extract_with_regex(
+            section_text=section.text,
+            section_heading=section.heading,
+            doc_context=doc_context,
+            doc_id=doc_structure.doc_id,
+            source=doc_structure.source,
+            section_id=section.id
+        )
+        
+        merged = merge_obligations(llm_obligations, regex_obligations)
+        all_obligations.extend(merged)
+    
+    deduped = deduplicate(all_obligations)
+    sorted_obs = sort_by_severity(deduped)
+    
+    # Assign unique ids and assign back to sections
+    for seq, ob in enumerate(sorted_obs, 1):
+        ob.id = f"{ob.section_id}-OB{seq}"
+    
+    for section in doc_structure.sections:
+        section.obligations = [ob for ob in sorted_obs if ob.section_id == section.id]
+        
+    return sorted_obs
 
-        for section_idx, section in enumerate(doc_structure.sections):
-            # ── Stage 4: Clause type filter ───────────────────────────────
-            # Skip definitions, cross-references, and effective-date clauses
-            # outright — they do not contain actionable obligations.
-            if section.clause_type in SKIP_CLAUSE_TYPES:
-                continue
 
-            # For amendment documents, skip the first section (legislative authority)
-            # unless it has a strong trigger verb.
-            if is_amendment and section_idx == 0:
-                has_strong = re.search(r"\bshall\b", section.text, re.IGNORECASE)
-                if not has_strong:
-                    continue
+def build_document_summary(doc_structure: DocumentStructureSchema) -> str:
+    all_text = ""
+    for section in doc_structure.sections[:5]:
+        all_text += section.text + "\n\n"
+    return all_text[:2000]
 
-            # ── Stage 5: Rule Engine V1 extraction ───────────────────────
-            regex_obligations = _extract_from_section(
-                section, doc_structure.cross_references, re_engine,
-                source=doc_structure.source,
-            )
 
-            # ── Stage 6: Selective LLM enrichment ────────────────────────
-            # Only call LLM if the section is expected to have obligations AND
-            # at least one extraction has low confidence.
-            needs_llm = (
-                section.clause_type in OBLIGATION_CLAUSE_TYPES
-                and any(ob.confidence < LLM_CONFIDENCE_GATE for ob in regex_obligations)
-            )
+def get_document_context(full_text_summary: str) -> dict:
+    system_prompt = """You are an expert at reading Indian regulatory circulars from RBI, SEBI, CERT-In, DPDP, FIU-IND.
+Return ONLY valid JSON. No explanation. No markdown."""
 
-            if needs_llm and regex_obligations:
-                llm_results = llm.extract_obligations(section.text)
-                merged_obligations = _merge_obligations(
-                    regex_obligations, llm_results, section, re_engine
-                )
-            else:
-                merged_obligations = regex_obligations
+    user_prompt = f"""Read the following regulatory document header and identify key context. Return JSON with exactly these fields:
 
-            # ── Stage 7: Rule Engine V2 re-score ─────────────────────────
-            # Re-compute confidence with llm_matched flag and verbatim ratio.
-            # We preserve the obligation's urgency as already set by V1 —
-            # the V2 pass only updates the confidence score, not core fields.
-            for ob in merged_obligations:
-                verbatim_ratio = SequenceMatcher(
-                    None, ob.action.lower(), section.text[:len(ob.action)].lower()
-                ).ratio()
-                ob.confidence = re_engine.compute_confidence(
-                    text=section.text,
-                    trigger_rule=None,  # V1 already applied trigger boosts; pass None to avoid double-adding
-                    urgency=ob.deadline.urgency,
-                    has_cross_ref=bool(ob.cross_references),
-                    actor=ob.actor,
-                    domain_match_count=0,
-                    llm_matched=ob.confidence > 0.70 and needs_llm,
-                    penalty_found=bool(ob.penalty_if_missed),
-                    fine_found=bool(ob.fine_exposure_inr),
-                    is_duplicate=False,
-                    action_verbatim_ratio=verbatim_ratio,
-                    clause_type=section.clause_type,
-                )
-                # Flag verbatim actions and attempt re-summarization
-                if verbatim_ratio > ACTION_VERBATIM_THRESHOLD or len(ob.action) > ACTION_MAX_LENGTH:
-                    ob.action, ob.notes = _try_resummarize(
-                        ob.action, section.text, ob.notes
-                    )
+{{
+  "primary_actor": "who the circular is addressed TO — e.g. All Authorised Dealer Category I Banks",
+  "primary_domain": "one of: KYC|AML|InfoSec|Credit|Payments|Fraud|HR|Governance|Basel|FOREX|FinancialInclusion|CapitalAdequacy|Operations|ConsumerProtection|General",
+  "document_type": "circular|amendment|direction|master_direction|guideline",
+  "subject": "the subject line of the circular in max 15 words",
+  "effective_date": "date string or null",
+  "issued_to": "the exact addressee line"
+}}
 
-            # ── Stage 8: Confidence gate ──────────────────────────────────
-            for ob in merged_obligations:
-                if ob.confidence >= config.MIN_OBLIGATION_CONFIDENCE:
-                    obligations.append(ob)
-
-        obligations = _deduplicate_and_merge(obligations)
-        _sort_by_severity(obligations)
-
-        # ── Stage 9: Assign globally unique IDs ───────────────────────────
-        # Previous stages may produce bare LLM IDs ("1", "2") or merged IDs
-        # that collide across sections.  Re-number to guarantee uniqueness.
-        for seq, ob in enumerate(obligations, 1):
-            ob.id = f"{ob.section_id}-OB{seq}"
-
-        # Attach obligations back to their sections
-        for section in doc_structure.sections:
-            section.obligations = [ob for ob in obligations if ob.section_id == section.id]
-
-        logger.info("Obligation extraction complete", total=len(obligations))
-        return obligations
-
+DOCUMENT HEADER:
+{full_text_summary}
+"""
+    try:
+        response_text = llm.call(mode="extraction", prompt=system_prompt + "\n\n" + user_prompt)
+        from backend.core.llm_client import OrbitalLLMClient
+        parsed = OrbitalLLMClient._parse_json(response_text)
+        if isinstance(parsed, dict) and "primary_actor" in parsed:
+            return parsed
     except Exception as e:
-        logger.error("Obligation extraction failed", error=str(e))
+        logger.error(f"Context extraction failed: {e}")
+        
+    domain = "General"
+    if "capital adequacy" in full_text_summary.lower(): domain = "CapitalAdequacy"
+    elif "payment" in full_text_summary.lower(): domain = "Payments"
+    
+    return {
+        "primary_actor": "Regulated Entity",
+        "primary_domain": domain,
+        "document_type": "circular",
+        "subject": "",
+        "effective_date": None,
+        "issued_to": "Regulated Entity"
+    }
+
+
+def clean_action(action: str, raw_text: str) -> str:
+    from difflib import SequenceMatcher
+    similarity = SequenceMatcher(None, action[:100], raw_text[:100]).ratio()
+    
+    if similarity > 0.8:
+        SUBJECT_PATTERNS = [
+            r'^The financial statements\s+',
+            r'^Such profits\s+',
+            r'^Losses in the current year\s+',
+            r'^All RE\s+',
+            r'^A bank\s+',
+            r'^The designated [A-Za-z\s]+bank\s+',
+            r'^Banks\s+',
+            r'^NBFCs\s+',
+        ]
+        
+        cleaned = action
+        for pattern in SUBJECT_PATTERNS:
+            cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE).strip()
+        
+        if cleaned:
+            cleaned = cleaned[0].upper() + cleaned[1:]
+        
+        if len(cleaned) > 120:
+            cut = cleaned.find(' and ', 80)
+            if cut > 0:
+                cleaned = cleaned[:cut].strip()
+        
+        return cleaned if len(cleaned) > 10 else action
+    
+    return action
+
+
+def extract_with_llm(section_text, section_heading, doc_context, doc_id, source, section_id):
+    system_prompt = """You are a compliance obligation extractor for Indian banks. You read regulatory circulars and extract binding obligations.
+
+Extract ONLY sentences where the bank or entity MUST do something. Look for: shall, must, required, prohibited, mandated.
+
+Also extract "may" clauses ONLY when they are compliance-relevant — meaning the bank must have a process in place to exercise that option (e.g. "may open small accounts" means the bank must have the process ready, even if discretionary).
+
+Return ONLY valid JSON array. Empty array [] if no obligations. No markdown. No explanation.
+
+Each obligation:
+{
+  "actor": "exact entity that must act",
+  "action": "clean verb phrase — what they must do, max 30 words, starts with a verb",
+  "trigger_word": "shall|must|required|prohibited|may",
+  "obligation_type": "mandatory|discretionary|prohibited",
+  "deadline": "deadline string or null",
+  "domain": "from context below",
+  "department": "from context below",
+  "severity": "critical|high|medium|low",
+  "evidence_required": "what proof is needed",
+  "raw_text": "the exact source sentence",
+  "confidence": 0.0 to 1.0
+}"""
+
+    user_prompt = f"""DOCUMENT CONTEXT:
+- Circular about: {doc_context.get("subject", "")}
+- Issued to: {doc_context.get("issued_to", "")}
+- Primary actor: {doc_context.get("primary_actor", "")}
+- Domain: {doc_context.get("primary_domain", "")}
+- Document type: {doc_context.get("document_type", "")}
+
+Use the above context to correctly identify:
+- actor: if sentence says "A bank" or "banks" → use the issued_to value from context above
+- domain: default to primary_domain from context unless sentence clearly belongs to different domain
+- department: map from domain
+
+SECTION HEADING: {section_heading}
+
+SECTION TEXT:
+{section_text}
+
+Extract all compliance obligations from this section."""
+
+    try:
+        response_text = llm.call(mode="extraction", prompt=system_prompt + "\n\n" + user_prompt)
+        from backend.core.llm_client import OrbitalLLMClient
+        parsed = OrbitalLLMClient._parse_json(response_text)
+        if not isinstance(parsed, list):
+            parsed = [parsed] if isinstance(parsed, dict) else []
+            
+        for ob in parsed:
+            ob["action"] = clean_action(ob.get("action", ""), ob.get("raw_text", ""))
+            ob["section_id"] = section_id
+            
+        return parsed
+    except Exception as e:
+        logger.error(f"LLM extraction failed: {e}")
         return []
 
 
-# ── Section-level extraction ──────────────────────────────────────────────────
+def split_into_obligation_sentences(text: str) -> List[str]:
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    sentences = [s.strip() for s in sentences if len(s.strip()) > 20]
+    
+    embedded_pattern = re.compile(
+        r'[^.!?]*\b(?:shall|must|required to|prohibited|may)\b[^.!?]*[.!?]',
+        re.IGNORECASE
+    )
+    embedded = embedded_pattern.findall(text)
+    for match in embedded:
+        m_stripped = match.strip()
+        if m_stripped not in sentences and len(m_stripped) > 20:
+            sentences.append(m_stripped)
+            
+    return sentences
 
-def _extract_from_section(
-    section,
-    doc_cross_refs: list[str],
-    re_engine,
-    source: str = None,
-) -> List[ObligationSchema]:
-    obligations: List[ObligationSchema] = []
-    sentences = _split_into_obligation_units(section.text)
+def has_trigger_word(text: str) -> bool:
+    TRIGGER_WORDS = ["shall", "must", "required", "prohibited", "mandated", "obligated", "may", "should"]
+    return any(t in text.lower() for t in TRIGGER_WORDS)
 
-    for index, sentence in enumerate(sentences, 1):
-        if len(sentence.strip()) < 20:
+def get_trigger(text: str) -> str:
+    lower = text.lower()
+    for t in ["shall", "must", "required", "prohibited", "mandated", "obligated", "may", "should"]:
+        if t in lower: return t
+    return "always"
+
+def classify_domain_from_sentence(text: str) -> str:
+    text_lower = text.lower()
+    if "capital adequacy" in text_lower or "owned fund" in text_lower or "quarterly profits" in text_lower or "statutory auditors" in text_lower or "free reserves" in text_lower:
+        return "CapitalAdequacy"
+    if "financial inclusion" in text_lower or "calamity" in text_lower or "satellite office" in text_lower:
+        return "FinancialInclusion"
+    if "customer compensation" in text_lower or "grievance" in text_lower or "ombudsman" in text_lower:
+        return "ConsumerProtection"
+    if "atm" in text_lower or "iccw" in text_lower or "national financial switch" in text_lower:
+        return "Operations"
+    return "General"
+
+def extract_actor(text: str) -> str:
+    ACTOR_PATTERNS = [
+        (r'\b(?:all\s+)?(?:scheduled\s+)?commercial\s+banks?\b', "Commercial Banks"),
+        (r'\b(?:all\s+)?(?:authorised?\s+)?dealer\s+(?:category\s+[iI]+\s+)?banks?\b', "Authorised Dealer Banks"),
+        (r'\bNBFC[s]?\b', "NBFCs"),
+        (r'\b(?:regulated?\s+)?entit(?:y|ies)\b', "Regulated Entity"),
+    ]
+    for pattern, actor in ACTOR_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            return actor
+    return "Regulated Entity"
+
+def _extract_action_regex(sentence: str, trigger: str) -> str:
+    idx = sentence.lower().find(trigger)
+    if idx >= 0:
+        return sentence[idx + len(trigger):].strip().capitalize()
+    return sentence
+
+def extract_deadline(text: str) -> Optional[str]:
+    m = re.search(r'(within \d+ days|with immediate effect|at the earliest)', text, re.IGNORECASE)
+    return m.group(1) if m else "ongoing"
+
+def calculate_severity(text: str) -> str:
+    if "prohibited" in text.lower() or "at the earliest" in text.lower():
+        return "critical"
+    if "shall" in text.lower():
+        return "high"
+    return "medium"
+
+def extract_with_regex(section_text, section_heading, doc_context, doc_id, source, section_id):
+    sentences = split_into_obligation_sentences(section_text)
+    obligations = []
+    for sentence in sentences:
+        if not has_trigger_word(sentence):
             continue
-
-        # ── Rule Engine V1: trigger detection ──
-        trigger_rule = re_engine.find_trigger(sentence)
-        urgency_override = (trigger_rule or {}).get("urgency_override")
-
-        # ── Rule Engine V1: deadline (passes urgency_override) ──
-        deadline_dict = re_engine.extract_deadline(sentence, urgency_override=urgency_override)
-
-        xrefs = re_engine.extract_cross_references(sentence)
-        has_xref = bool(xrefs)
-
-        # Skip sentences with no trigger, no deadline, and no cross-reference
-        if trigger_rule is None and deadline_dict["urgency"] == "ongoing" and not has_xref:
-            continue
-
-        # ── Skip non-obligation clause types unless strong trigger present ──
-        if section.clause_type not in OBLIGATION_CLAUSE_TYPES:
-            has_strong_trigger = trigger_rule and trigger_rule.get("weight", 0) >= 0.9
-            if not has_strong_trigger:
-                continue
-
-        # ── Rule Engine V1: classify ──
-        obligation_type = re_engine.classify_obligation_type(sentence, trigger_rule)
-        actor = re_engine.find_actor(sentence, source=source)
-
-        # Fix: if actor == "RBI" and section is the preamble/authority section,
-        # the real obligated party is the regulated entity, not the regulator.
-        actor = _correct_issuer_actor(actor, sentence, section)
-
-        domain, match_count = re_engine.classify_domain(sentence)
-        sub_type = re_engine.find_obligation_sub_type(sentence)
-
-        # ── Sector pack override ──
-        sector_match = re_engine.find_sector_obligation(sentence, actor)
-        if sector_match:
-            domain = sector_match.get("domain", domain)
-            if sector_match.get("deadline"):
-                sd = sector_match["deadline"]
-                deadline_dict = {
-                    "text": sd.get("text", deadline_dict["text"]),
-                    "absolute_date": sd.get("absolute_date", deadline_dict["absolute_date"]),
-                    "duration": sd.get("duration", deadline_dict["duration"]),
-                    "urgency": sd.get("urgency", deadline_dict["urgency"]),
-                    "frequency": sd.get("frequency", deadline_dict.get("frequency")),
-                }
-
-        # ── Rule Engine V1: departments ──
-        departments = re_engine.get_departments(
-            domain=domain,
-            sub_type=sub_type or (sector_match.get("sub_type") if sector_match else None),
+            
+        domain = classify_domain_from_sentence(sentence)
+        if domain == "General":
+            domain = doc_context.get("primary_domain", "General")
+            
+        actor = extract_actor(sentence)
+        if actor == "Regulated Entity":
+            actor = doc_context.get("primary_actor", "Regulated Entity")
+            
+        trigger = get_trigger(sentence)
+        deadline_str = extract_deadline(sentence) or "ongoing"
+        
+        ob = ObligationSchema(
+            id=str(uuid.uuid4()),
+            section_id=section_id,
+            clause_number=section_id,
             actor=actor,
-            text=sentence,
+            action=_extract_action_regex(sentence, trigger),
+            obligation_type="mandatory" if trigger != "may" else "discretionary",
+            trigger=trigger,
+            deadline=DeadlineSchema(text=deadline_str, urgency="ongoing" if deadline_str=="ongoing" else "short_term"),
+            domain=map_domain(domain),
+            departments=[DOMAIN_TO_DEPT.get(domain, "Compliance")],
+            severity=calculate_severity(sentence),
+            severity_reason="Regex extracted",
+            evidence_required=[DOMAIN_TO_EVIDENCE.get(domain, "Implementation report")],
+            confidence=0.65,
+            notes=None,
         )
-
-        # ── Rule Engine V1: severity ──
-        severity = re_engine.classify_severity(
-            text=sentence,
-            urgency=deadline_dict["urgency"],
-            obligation_type=obligation_type,
-            sub_type=sub_type or (sector_match.get("sub_type") if sector_match else None),
-            domain=domain,
-        )
-        if sector_match:
-            floor = sector_match.get("severity")
-            if floor and _severity_rank(floor) > _severity_rank(severity):
-                severity = floor
-
-        # ── Build deadline schema ──
-        deadline = DeadlineSchema(
-            text=deadline_dict["text"],
-            absolute_date=deadline_dict.get("absolute_date"),
-            duration=deadline_dict.get("duration"),
-            urgency=deadline_dict["urgency"],
-        )
-
-        # ── Action extraction + quality check ──
-        action = _extract_action(sentence, trigger_rule)
-        verbatim_ratio = SequenceMatcher(
-            None, action.lower(), sentence[:len(action)].lower()
-        ).ratio()
-
-        # ── Rule Engine V1: confidence ──
-        penalty = _extract_penalty(sentence)
-        fine = _extract_fine(sentence)
-        confidence = re_engine.compute_confidence(
-            text=sentence,
-            trigger_rule=trigger_rule,
-            urgency=deadline.urgency,
-            has_cross_ref=has_xref,
-            actor=actor,
-            domain_match_count=match_count,
-            penalty_found=bool(penalty),
-            fine_found=bool(fine),
-            action_verbatim_ratio=verbatim_ratio,
-            clause_type=section.clause_type,
-        )
-
-        notes = _build_notes(sentence, obligation_type, trigger_rule)
-        if verbatim_ratio > ACTION_VERBATIM_THRESHOLD or len(action) > ACTION_MAX_LENGTH:
-            action, notes = _try_resummarize(action, sentence, notes)
-
-        obligations.append(
-            ObligationSchema(
-                id=f"{section.id}-OB{index}",
-                section_id=section.id,
-                clause_number=section.id,
-                actor=actor,
-                action=action,
-                obligation_type=obligation_type,
-                trigger=_extract_trigger_text(sentence, trigger_rule),
-                deadline=deadline,
-                domain=domain,
-                departments=departments,
-                severity=severity,
-                severity_reason=re_engine.severity_reason(
-                    severity, deadline.urgency,
-                    sub_type or (sector_match.get("sub_type") if sector_match else None),
-                ),
-                evidence_required=_evidence_for(sentence, domain),
-                penalty_if_missed=penalty,
-                fine_exposure_inr=fine,
-                cross_references=_merge_cross_references(xrefs, doc_cross_refs),
-                confidence=confidence,
-                notes=notes if notes else None,
-            )
-        )
-
+        ob.__dict__["raw_text"] = sentence
+        obligations.append(ob)
     return obligations
 
 
-# ── LLM merge ─────────────────────────────────────────────────────────────────
-
-def _merge_obligations(
-    regex_obligations: List[ObligationSchema],
-    llm_obligations: list,
-    section,
-    re_engine,
-) -> List[ObligationSchema]:
-    merged = list(regex_obligations)
-
-    for index, item in enumerate(llm_obligations, len(regex_obligations) + 1):
-        if not isinstance(item, dict) or not item.get("action"):
-            continue
-
-        candidate = _coerce_llm_obligation(item, section, index, re_engine)
-        if not candidate:
-            continue
-
-        matched = False
-        for existing in merged:
-            sim = SequenceMatcher(None, existing.action.lower(), candidate.action.lower()).ratio()
-            if sim > 0.82:
-                # Merge: keep higher confidence; update llm_matched flag
-                if candidate.confidence > existing.confidence:
-                    existing.confidence = candidate.confidence
-                if existing.deadline.text == "ongoing" and candidate.deadline.text != "ongoing":
-                    existing.deadline = candidate.deadline
-                if not existing.cross_references and candidate.cross_references:
-                    existing.cross_references = candidate.cross_references
-                matched = True
-                break
-
-        # Only add LLM-only obligations if they have sufficient confidence
-        # and a non-trivial action
-        if not matched and candidate.confidence >= 0.75 and len(candidate.action) >= ACTION_MIN_LENGTH:
-            merged.append(candidate)
-
-    return merged
-
-
-def _coerce_llm_obligation(item: dict, section, index: int, re_engine) -> Optional[ObligationSchema]:
-    try:
-        domain = _normalize_domain(item.get("domain", "Other"))
-        departments = _normalize_departments(item.get("departments"))
-        severity = item.get("severity", "medium")
-        if severity not in {"critical", "high", "medium", "low"}:
-            severity = "medium"
-        obligation_type = item.get("obligation_type", "mandatory")
-        if obligation_type not in {"mandatory", "discretionary", "conditional", "time_bound"}:
-            obligation_type = "mandatory"
-
-        deadline_obj = item.get("deadline", {})
-        if isinstance(deadline_obj, dict):
-            deadline = DeadlineSchema(
-                text=deadline_obj.get("text", "ongoing"),
-                absolute_date=deadline_obj.get("absolute_date"),
-                duration=deadline_obj.get("duration"),
-                urgency=deadline_obj.get("urgency", "ongoing"),
-            )
-        else:
-            dd = re_engine.extract_deadline(str(deadline_obj))
-            deadline = DeadlineSchema(
-                text=dd["text"],
-                absolute_date=dd.get("absolute_date"),
-                duration=dd.get("duration"),
-                urgency=dd["urgency"],
-            )
-
-        action = str(item.get("action", "")).strip()
-        # Reject obviously empty or low-quality LLM actions
-        if len(action) < ACTION_MIN_LENGTH:
-            return None
-
-        return ObligationSchema(
-            id=f"{section.id}-L{index}",
-            section_id=str(item.get("section_id") or section.id),
-            clause_number=str(item.get("clause_number") or section.id),
-            actor=item.get("actor", "Regulated Entity"),
-            action=action,
-            obligation_type=obligation_type,
-            trigger=item.get("trigger", "always"),
-            deadline=deadline,
-            domain=domain,
-            departments=departments,
-            severity=severity,
-            severity_reason=item.get("severity_reason", "LLM-derived severity."),
-            evidence_required=item.get("evidence_required", ["Compliance confirmation"]),
-            penalty_if_missed=item.get("penalty_if_missed"),
-            fine_exposure_inr=item.get("fine_exposure_inr"),
-            cross_references=item.get("cross_references", []),
-            confidence=float(item.get("confidence", 0.0)),
-            notes=item.get("notes"),
-        )
-    except Exception:
-        return None
-
-
-# ── Issuer-as-actor correction ─────────────────────────────────────────────────
-
-def _correct_issuer_actor(actor: str, sentence: str, section) -> str:
-    """
-    Regulators (RBI, IRDAI, SEBI, etc.) are issuers of circulars, not the
-    obligated party.  If the detected actor is the issuing regulator and the
-    sentence is a legislative authority / preamble statement, reclassify to
-    "Regulated Entity".
-    """
-    if actor not in ("RBI", "IRDAI"):
-        return actor
-
-    lower = sentence.lower()
-    # Preamble / issuer-language indicators
-    issuer_signals = [
-        "hereby issues", "in exercise of the powers", "being satisfied",
-        "expedient in the public interest", "reserve bank hereby",
-        "hereby directs", "hereby notifies",
-        # IRDAI-specific issuer phrases
-        "the authority hereby", "in exercising its powers",
-        "the authority has decided", "the authority directs",
+def should_skip_section(section) -> bool:
+    SKIP_HEADINGS = [
+        "yours faithfully", "chief general manager", "general manager",
+        "deputy governor", "www.rbi.org.in", "telephone", "tel no",
+        "reserve bank of india"
     ]
-    if any(sig in lower for sig in issuer_signals):
-        return "Regulated Entity"
+    SKIP_PATTERNS = [
+        r"^\s*www\.", r"^\s*टेलीफोन", r"^\s*फैक्स", r"हिंदी", r"बेटी बचाओ", r"^\s*\d+\s*$"
+    ]
+    heading_lower = section.heading.lower().strip()
+    if heading_lower in SKIP_HEADINGS:
+        return True
+        
+    if len(section.text.strip()) < 50:
+        for pattern in SKIP_PATTERNS:
+            if re.search(pattern, section.text, re.IGNORECASE):
+                return True
+                
+    TRIGGER_WORDS = ["shall", "must", "required", "prohibited", "mandated", "obligated", "may", "should"]
+    has_trigger = any(t in section.text.lower() for t in TRIGGER_WORDS)
+    if not has_trigger and len(section.text) < 100:
+        return True
+        
+    return False
 
-    return actor
 
-
-# ── Text helpers ───────────────────────────────────────────────────────────────
-
-def _split_into_obligation_units(text: str) -> List[str]:
-    """
-    Split section text into individual obligation candidate units.
-    Handles:
-      - Numbered sub-clauses: (i), (ii), 3.1, 121A
-      - Sentence boundaries before common obligation actors
-      - Paragraph breaks
-    """
-    # Split on numbered / roman sub-clauses first
-    parts = re.split(
-        r"\n(?=(?:\(?[ivxlcdm]+\)|[A-Za-z]?\d+(?:\.\d+)*[A-Z]?\.))",
-        text,
-        flags=re.IGNORECASE,
+def dict_to_obligation_schema(llm_ob: dict) -> ObligationSchema:
+    domain_raw = llm_ob.get("domain", "General")
+    domain = map_domain(domain_raw)
+    
+    deadline_str = str(llm_ob.get("deadline", "ongoing"))
+    
+    sev = llm_ob.get("severity", "medium").lower()
+    if sev not in {"critical", "high", "medium", "low"}: sev = "medium"
+    
+    otype = llm_ob.get("obligation_type", "mandatory").lower()
+    if otype not in {"mandatory", "discretionary", "conditional", "time_bound"}: otype = "mandatory"
+    
+    ev = llm_ob.get("evidence_required", [])
+    if ev is None:
+        ev = []
+    elif isinstance(ev, str):
+        ev = [ev]
+    
+    ob = ObligationSchema(
+        id=str(uuid.uuid4()),
+        section_id=llm_ob.get("section_id", ""),
+        clause_number=llm_ob.get("section_id", ""),
+        actor=llm_ob.get("actor", "Regulated Entity"),
+        action=llm_ob.get("action", ""),
+        obligation_type=otype,
+        trigger=llm_ob.get("trigger_word", "always"),
+        deadline=DeadlineSchema(text=deadline_str, urgency="ongoing" if deadline_str=="ongoing" else "short_term"),
+        domain=domain,
+        departments=[DOMAIN_TO_DEPT.get(domain_raw, "Compliance")],
+        severity=sev,
+        severity_reason="LLM Extracted",
+        evidence_required=ev,
+        confidence=float(llm_ob.get("confidence", 0.8)),
     )
-    units: List[str] = []
-    for part in parts:
-        part = part.strip()
-        if not part:
-            continue
-        # Further split on sentence boundaries before actor phrases
-        subparts = re.split(
-            r"(?<=[.;])\s+(?=(?:A bank|Banks|All |Regulated |The bank|In case of|"
-            r"Where |If |Subject to|Provided that|For continuing|During the period))",
-            part,
-        )
-        for subpart in subparts:
-            cleaned = subpart.strip()
-            if len(cleaned) >= 20:
-                units.append(cleaned)
-    return units or [text.strip()]
+    ob.__dict__["raw_text"] = llm_ob.get("raw_text", "")
+    return ob
 
 
-def _extract_action(sentence: str, trigger_rule: Optional[dict]) -> str:
-    """
-    Extract a clean, summarised action from the obligation sentence.
-    Strips clause IDs, trigger words, and leading filler.
-    Flags result if it exceeds ACTION_MAX_LENGTH.
-    """
-    clean = re.sub(r"\s+", " ", sentence).strip()
-    # Remove leading clause numbering (e.g. "121A. " or "3.2.1 ")
-    clean = re.sub(r"^[A-Za-z]?\d+(?:\.\d+)*[A-Z]?\.\s*", "", clean)
-
-    if trigger_rule:
-        matched = trigger_rule.get("matched_text", "")
-        if matched:
-            idx = clean.lower().find(matched.lower())
-            if idx >= 0:
-                clean = clean[idx + len(matched):].strip(" ,:;")
-
-    # Strip common leading filler
-    clean = re.sub(r"^(?:it|they|the bank|a bank)\s+", "", clean, flags=re.IGNORECASE)
-    clean = re.sub(r"\bshall\b|\bmust\b|\bmay\b|\bcan\b", "", clean, flags=re.IGNORECASE)
-    clean = re.sub(r"\s+", " ", clean).strip(" .")
-
-    if not clean:
-        return "Review the clause manually."
-
-    result = clean[0].upper() + clean[1:]
-    if not result.endswith("."):
-        result += "."
-    return result
-
-
-def _extract_trigger_text(sentence: str, trigger_rule: Optional[dict]) -> str:
-    lower = sentence.lower()
-    calamity = re.search(r"(declaration of calamity|affected areas?|during the period)", lower)
-    if calamity:
-        return calamity.group(1)
-    conditional = re.search(
-        r"(in case of [^.,;]+|where [^.,;]+|if [^.,;]+|subject to [^.,;]+|provided that [^.,;]+)",
-        sentence, re.IGNORECASE,
-    )
-    if conditional:
-        return conditional.group(1).strip()
-    if trigger_rule:
-        otype = trigger_rule.get("obligation_type", "")
-        if otype in {"mandatory", "prohibition", "approval_required"}:
-            return "always"
-        return trigger_rule.get("matched_text", "always")
-    return "always"
-
-
-def _evidence_for(sentence: str, domain: str) -> list[str]:
-    evidence = list(EVIDENCE_MAP.get(domain, EVIDENCE_MAP["Other"]))
-    lower = sentence.lower()
-    if "approval" in lower:
-        evidence.append("Approval or authorization record")
-    if "intimation" in lower or "report" in lower or "submit" in lower:
-        evidence.append("Regulatory communication or submission acknowledgement")
-    return _unique(evidence)
-
-
-def _extract_penalty(sentence: str) -> Optional[str]:
-    m = re.search(r"(penalty[^.;]*|fine[^.;]*|late submission fee[^.;]*)", sentence, re.IGNORECASE)
-    return m.group(1).strip() if m else None
-
-
-def _extract_fine(sentence: str) -> Optional[float]:
-    m = re.search(r"(?:Rs\.?|INR)\s*([\d,]+(?:\.\d+)?)", sentence, re.IGNORECASE)
-    if not m:
-        return None
-    try:
-        return float(m.group(1).replace(",", ""))
-    except ValueError:
-        return None
-
-
-def _merge_cross_references(local_refs: list[str], doc_refs: list[str]) -> list[str]:
-    merged = list(local_refs)
-    for ref in doc_refs:
-        if ref not in merged and any(t in ref.lower() for t in ["directions", "circular", "guidelines"]):
-            merged.append(ref)
-    return merged[:5]
-
-
-def _build_notes(sentence: str, obligation_type: str, trigger_rule: Optional[dict]) -> Optional[str]:
-    if obligation_type == "conditional":
-        return "This obligation applies only when the stated condition is met."
-    if trigger_rule and trigger_rule.get("obligation_type") == "prohibition":
-        return "This is a prohibition — the actor must NOT perform the stated action."
-    lower = sentence.lower()
-    if "may" in lower or "at its discretion" in lower:
-        return "The clause appears discretionary rather than strictly mandatory."
+def find_matching_regex_ob(ob: ObligationSchema, regex_obs: List[ObligationSchema]):
+    from difflib import SequenceMatcher
+    best_match = None
+    best_ratio = 0
+    raw_text = getattr(ob, "raw_text", ob.action)
+    for rob in regex_obs:
+        rob_raw = getattr(rob, "raw_text", rob.action)
+        ratio = SequenceMatcher(None, raw_text[:100], rob_raw[:100]).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_match = rob
+    if best_ratio > 0.6:
+        return best_match
     return None
 
-
-# ── Verbatim re-summarization ──────────────────────────────────────────────────
-
-def _try_resummarize(
-    action: str, source_text: str, notes: str | None,
-) -> tuple[str, str | None]:
-    """Attempt LLM re-summarization of a verbatim action.
-
-    Returns (possibly_rewritten_action, updated_notes).  The rewritten text is
-    accepted only if it passes the same verbatim-similarity check against the
-    source text *and* is not too short.  Otherwise the original action is kept
-    and the review note is appended as a fallback.
-    """
-    try:
-        rewritten = llm.resummarize_action(action)
-    except Exception:
-        rewritten = ""
-
-    if rewritten and len(rewritten) >= ACTION_MIN_LENGTH:
-        new_ratio = SequenceMatcher(
-            None, rewritten.lower(), source_text[:len(rewritten)].lower()
-        ).ratio()
-        if new_ratio <= ACTION_VERBATIM_THRESHOLD and len(rewritten) <= ACTION_MAX_LENGTH:
-            notes = (notes or "") + " [action_quality: re-summarized by LLM]"
-            return rewritten, notes
-
-    # Fallback: keep original action, tag for human review
-    notes = (notes or "") + " [action_quality: verbatim — needs review]"
-    return action, notes
-
-
-# ── Deduplication & sorting ────────────────────────────────────────────────────
-
-def _deduplicate_and_merge(obligations: List[ObligationSchema]) -> List[ObligationSchema]:
-    """Two-phase dedup + merge for same-section obligations.
-
-    Phase 1 — *exact-ish dedup*: drop obligations whose action text is ≥ 86%
-    similar to another in the same section (regardless of actor).  Keep the one
-    with the higher confidence.
-
-    Phase 2 — *sub-clause merge*: when a section still has multiple obligations
-    (typically from an enumerated clause with sub-points a, b, c …), merge them
-    into ONE obligation whose ``action`` field lists the sub-actions.  Actor and
-    department fields are reconciled, with conflicts flagged in ``notes``.
-    """
-    grouped: dict[str, List[ObligationSchema]] = {}
-    for ob in obligations:
-        grouped.setdefault(ob.section_id, []).append(ob)
-
-    result: List[ObligationSchema] = []
-    for section_id, group in grouped.items():
-        # ── Phase 1: exact-ish dedup ──────────────────────────────────────
-        keep = [True] * len(group)
-        for i in range(len(group)):
-            if not keep[i]:
-                continue
-            for j in range(i + 1, len(group)):
-                if not keep[j]:
-                    continue
-                sim = SequenceMatcher(
-                    None, group[i].action.lower(), group[j].action.lower()
-                ).ratio()
-                if sim > 0.75:
-                    # Keep the higher-confidence one; if equal, keep the one
-                    # with a more specific actor (not "Regulated Entity").
-                    i_better = (
-                        group[i].confidence > group[j].confidence
-                        or (
-                            group[i].confidence == group[j].confidence
-                            and group[i].actor != "Regulated Entity"
-                        )
-                    )
-                    if i_better:
-                        keep[j] = False
-                    else:
-                        keep[i] = False
-                        break
-        deduped = [group[idx] for idx in range(len(group)) if keep[idx]]
-
-        # ── Phase 2: sub-clause merge ─────────────────────────────────────
-        if len(deduped) >= 3:
-            merged = _merge_section_group(deduped)
-            result.append(merged)
-        else:
-            result.extend(deduped)
-
-    return result
-
-
-def _merge_section_group(group: List[ObligationSchema]) -> ObligationSchema:
-    """Merge multiple obligations from one section into a single record.
-
-    The primary obligation (highest confidence) provides the base fields.
-    The remaining obligations contribute sub-actions that are appended as a
-    numbered list.  Actor and department conflicts are reconciled.
-    """
-    # Sort by confidence descending so the best extraction leads.
-    ranked = sorted(group, key=lambda o: -o.confidence)
-    primary = ranked[0]
-    others = ranked[1:]
-
-    # ── Reconcile actor & departments ─────────────────────────────────────
-    actor, departments, conflict_notes = _reconcile_actor_departments(ranked)
-
-    # ── Reconcile obligation types ─────────────────────────────────────────
-    def _otype_rank(otype: str) -> int:
-        return {"mandatory": 3, "time_bound": 2, "conditional": 1, "discretionary": 0}.get(otype, 0)
-
-    best_otype = primary.obligation_type
-    mixed_types = False
-    for ob in others:
-        if ob.obligation_type != primary.obligation_type:
-            mixed_types = True
-        if _otype_rank(ob.obligation_type) > _otype_rank(best_otype):
-            best_otype = ob.obligation_type
-
-    # ── Build combined action with sub-actions ────────────────────────────
-    # Collect unique sub-actions (avoid repeating the primary's action).
-    sub_actions: list[tuple[str, str]] = []  # (action, otype)
-    seen_actions: set[str] = {primary.action.lower()}
-    for ob in others:
-        normalised = ob.action.lower()
-        # Skip if this sub-action is substantially similar to one already seen
-        if any(SequenceMatcher(None, normalised, s).ratio() > 0.70 for s in seen_actions):
-            continue
-        seen_actions.add(normalised)
-        sub_actions.append((ob.action.rstrip("."), ob.obligation_type))
-
-    if sub_actions:
-        bullet_list = "; ".join(
-            f"({chr(97 + i)}) {sa[0]}" for i, sa in enumerate(sub_actions)
-        )
-        combined_action = f"{primary.action.rstrip('.')}. Sub-requirements: {bullet_list}."
-    else:
-        combined_action = primary.action
-
-    otype_note = ""
-    if mixed_types and sub_actions:
-        type_mapping = {primary.obligation_type: ["primary"]}
-        for i, sa in enumerate(sub_actions):
-            otype = sa[1]
-            if otype not in type_mapping:
-                type_mapping[otype] = []
-            type_mapping[otype].append(f"({chr(97 + i)})")
-        
-        mapping_strs = []
-        for otype, items in type_mapping.items():
-            # Format: "mandatory": ["primary", "(a)"]
-            quoted_items = ", ".join(f'"{item}"' for item in items)
-            mapping_strs.append(f'"{otype}": [{quoted_items}]')
+def merge_obligations(llm_obs: List[dict], regex_obs: List[ObligationSchema]) -> List[ObligationSchema]:
+    final = []
+    for llm_ob in llm_obs:
+        if not llm_ob.get("action"): continue
+        ob = dict_to_obligation_schema(llm_ob)
+        match = find_matching_regex_ob(ob, regex_obs)
+        if match:
+            ob.__dict__["raw_text"] = getattr(match, "raw_text", match.action)
+            ob.confidence = max(ob.confidence, match.confidence)
+        if ob.confidence >= 0.5:
+            final.append(ob)
             
-        otype_note = f"[mixed_obligation_types: {{{', '.join(mapping_strs)}}}]"
-
-    # ── Merge ancillary fields ────────────────────────────────────────────
-    # Evidence: union of all evidence items
-    all_evidence = list(primary.evidence_required)
-    for ob in others:
-        for ev in ob.evidence_required:
-            if ev not in all_evidence:
-                all_evidence.append(ev)
-
-    # Cross-references: union
-    all_xrefs = list(primary.cross_references)
-    for ob in others:
-        for xr in ob.cross_references:
-            if xr not in all_xrefs:
-                all_xrefs.append(xr)
-
-    # Severity: take the highest
-    highest_severity = primary.severity
-    for ob in others:
-        if _severity_rank(ob.severity) > _severity_rank(highest_severity):
-            highest_severity = ob.severity
-
-    # Deadline: prefer the most specific (non-ongoing)
-    best_deadline = primary.deadline
-    for ob in others:
-        if best_deadline.urgency == "ongoing" and ob.deadline.urgency != "ongoing":
-            best_deadline = ob.deadline
-        elif (
-            ob.deadline.duration
-            and not best_deadline.duration
-            and ob.deadline.urgency != "ongoing"
-        ):
-            best_deadline = ob.deadline
-
-    # Penalty / fine: take whichever exists
-    penalty = primary.penalty_if_missed
-    fine = primary.fine_exposure_inr
-    for ob in others:
-        if not penalty and ob.penalty_if_missed:
-            penalty = ob.penalty_if_missed
-        if not fine and ob.fine_exposure_inr:
-            fine = ob.fine_exposure_inr
-
-    # Notes: combine originals + conflict notes
-    merged_notes_parts: list[str] = []
-    if primary.notes:
-        merged_notes_parts.append(primary.notes.strip())
-    if conflict_notes:
-        merged_notes_parts.append(conflict_notes)
-    if otype_note:
-        merged_notes_parts.append(otype_note)
-    merged_notes_parts.append(
-        f"[merged {len(group)} sub-clause obligations into one record]"
-    )
-    merged_notes = " ".join(merged_notes_parts)
-
-    return ObligationSchema(
-        id=primary.id,
-        section_id=primary.section_id,
-        clause_number=primary.clause_number,
-        actor=actor,
-        action=combined_action,
-        obligation_type=best_otype,
-        trigger=primary.trigger,
-        deadline=best_deadline,
-        domain=primary.domain,
-        departments=departments,
-        severity=highest_severity,
-        severity_reason=primary.severity_reason,
-        evidence_required=all_evidence[:8],
-        penalty_if_missed=penalty,
-        fine_exposure_inr=fine,
-        cross_references=all_xrefs[:5],
-        confidence=primary.confidence,
-        notes=merged_notes,
-    )
-
-
-def _reconcile_actor_departments(
-    ranked: List[ObligationSchema],
-) -> tuple[str, list[str], str]:
-    """Pick the best actor and departments from a group of obligations.
-
-    Preference order for actor:
-      1. A specific (non-generic) actor from the highest-confidence obligation
-      2. If the highest-confidence actor is "Regulated Entity" but another
-         obligation has a more specific actor, prefer the specific one.
-
-    Rule-engine obligations typically have higher confidence and more specific
-    actors (e.g. "FRBs/Reinsurers"), while LLM-produced ones often default to
-    "Regulated Entity".
-
-    Returns (actor, departments, conflict_note_or_empty).
-    """
-    GENERIC_ACTORS = {"Regulated Entity", "Bank"}
-
-    # Collect unique actors
-    actors_seen: dict[str, float] = {}  # actor → best confidence
-    for ob in ranked:
-        if ob.actor not in actors_seen or ob.confidence > actors_seen[ob.actor]:
-            actors_seen[ob.actor] = ob.confidence
-
-    # Pick the best actor
-    primary_actor = ranked[0].actor
-    if primary_actor in GENERIC_ACTORS and len(actors_seen) > 1:
-        # Prefer a non-generic actor if available
-        for actor, conf in sorted(actors_seen.items(), key=lambda x: -x[1]):
-            if actor not in GENERIC_ACTORS:
-                primary_actor = actor
+    for regex_ob in regex_obs:
+        found_in_llm = False
+        rob_raw = getattr(regex_ob, "raw_text", regex_ob.action)
+        for ob in final:
+            ob_raw = getattr(ob, "raw_text", ob.action)
+            from difflib import SequenceMatcher
+            if SequenceMatcher(None, rob_raw[:100], ob_raw[:100]).ratio() > 0.6:
+                found_in_llm = True
                 break
+        if not found_in_llm:
+            regex_ob.confidence = min(regex_ob.confidence, 0.65)
+            final.append(regex_ob)
+            logger.info("Regex caught obligation LLM missed")
+            
+    return final
 
-    # Merge departments (union, preserving order)
-    dept_set: set[str] = set()
-    merged_depts: list[str] = []
-    for ob in ranked:
-        for dept in ob.departments:
-            if dept not in dept_set:
-                dept_set.add(dept)
-                merged_depts.append(dept)
+def deduplicate(obligations: List[ObligationSchema]) -> List[ObligationSchema]:
+    from difflib import SequenceMatcher
+    keep = [True] * len(obligations)
+    for i in range(len(obligations)):
+        if not keep[i]: continue
+        for j in range(i+1, len(obligations)):
+            if not keep[j]: continue
+            if SequenceMatcher(None, obligations[i].action.lower()[:100], obligations[j].action.lower()[:100]).ratio() > 0.75:
+                if obligations[i].confidence >= obligations[j].confidence:
+                    keep[j] = False
+                else:
+                    keep[i] = False
+                    break
+    return [obs for idx, obs in enumerate(obligations) if keep[idx]]
 
-    # Build conflict note if actors disagree
-    conflict_note = ""
-    unique_actors = set(actors_seen.keys())
-    if len(unique_actors) > 1:
-        others_str = ", ".join(sorted(unique_actors - {primary_actor}))
-        conflict_note = (
-            f"[actor_conflict: selected '{primary_actor}'; "
-            f"other extractions had: {others_str} — review recommended]"
-        )
-
-    return primary_actor, merged_depts, conflict_note
-
-
-def _sort_by_severity(obligations: List[ObligationSchema]) -> None:
+def sort_by_severity(obligations: List[ObligationSchema]) -> List[ObligationSchema]:
     rank = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     obligations.sort(key=lambda o: (rank.get(o.severity, 4), -o.confidence))
-
-
-def _severity_rank(severity: str) -> int:
-    return {"critical": 3, "high": 2, "medium": 1, "low": 0}.get(severity, 0)
-
-
-# ── Normalisation helpers ──────────────────────────────────────────────────────
-
-def _normalize_domain(value: str) -> str:
-    allowed = {
-        "KYC_AML", "Cybersecurity", "DataPrivacy", "FinancialInclusion",
-        "BusinessContinuity", "FraudManagement", "CapitalAdequacy", "Payments",
-        "CustomerService", "Governance", "ITInfrastructure", "ReportingAudit",
-        "HR_Training", "FEMA", "Other",
-    }
-    if value in allowed:
-        return value
-    mapping = {
-        "kyc": "KYC_AML", "aml": "KYC_AML", "infosec": "Cybersecurity",
-        "cybersecurity": "Cybersecurity", "credit": "Other", "payments": "Payments",
-        "fraud": "FraudManagement", "governance": "Governance",
-        "basel": "CapitalAdequacy", "forex": "FEMA", "general": "Other",
-    }
-    return mapping.get(str(value).lower(), "Other")
-
-
-def _normalize_departments(value) -> list[str]:
-    allowed = {
-        "Compliance", "AML_KYC", "Cybersecurity", "IT", "DigitalBanking",
-        "Operations", "BranchNetwork", "RiskManagement", "Legal", "Finance",
-        "Treasury", "HR", "CustomerService", "FraudManagement", "InternalAudit",
-        "RetailBanking",
-    }
-    if not isinstance(value, list):
-        return ["Compliance"]
-    result = [item for item in value if item in allowed]
-    return result or ["Compliance"]
-
-
-def _unique(items: list[str]) -> list[str]:
-    seen: set[str] = set()
-    result = []
-    for item in items:
-        if item and item not in seen:
-            seen.add(item)
-            result.append(item)
-    return result
+    return obligations

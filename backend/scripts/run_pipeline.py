@@ -17,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from backend.core.logger import get_logger
+from backend.core.config import get_config
 from backend.ingestion.pipeline import run_pipeline
 
 logger = get_logger(__name__)
@@ -142,7 +143,75 @@ def process_folder(folder_path: str, source: str, verbose: bool = False):
     print("═══════════════════════════════════")
 
 
+def discover_pdf_files(root: str) -> list[Path]:
+    """Scan a folder recursively and return PDFs in stable order."""
+    root_path = Path(root)
+    if not root_path.exists():
+        return []
+    return sorted(root_path.rglob("*.pdf"))
+
+
+def _parse_selection(selection: str, total: int) -> list[int]:
+    indexes: list[int] = []
+    for token in selection.replace(" ", "").split(","):
+        if not token:
+            continue
+        if "-" in token:
+            start_text, end_text = token.split("-", 1)
+            if start_text.isdigit() and end_text.isdigit():
+                start = max(1, int(start_text))
+                end = min(total, int(end_text))
+                indexes.extend(range(start, end + 1))
+        elif token.isdigit():
+            indexes.append(int(token))
+    return sorted(set(indexes))
+
+
+def prompt_file_selection(pdf_files: list[Path]) -> list[Path]:
+    """Display files and let the user pick one or more by index."""
+    if not pdf_files:
+        print("No PDF files found.")
+        return []
+
+    print("\nFound PDF files:\n")
+    for idx, file_path in enumerate(pdf_files, 1):
+        print(f"{idx:>3}. {file_path}")
+
+    print("\nSelect files by number, ranges like 1,3,5-7, or 'all'.")
+    print("Press Enter to cancel.")
+    selection = input("Selection: ").strip().lower()
+    if not selection:
+        return []
+    if selection in {"all", "*"}:
+        return pdf_files
+
+    indexes = _parse_selection(selection, len(pdf_files))
+    return [pdf_files[idx - 1] for idx in indexes if 1 <= idx <= len(pdf_files)]
+
+
+def process_selected_files(pdf_files: list[Path], source: str, verbose: bool = False):
+    """Process multiple user-selected PDFs."""
+    if not pdf_files:
+        print("No files selected.")
+        return
+
+    print(f"\nProcessing {len(pdf_files)} selected file(s)...\n")
+    results = []
+    for idx, pdf_file in enumerate(pdf_files, 1):
+        selected_source = source
+        if source == "auto":
+            selected_source = detect_source_from_filename(pdf_file.name)
+        print(f"[{idx}/{len(pdf_files)}] {pdf_file.name}")
+        result = process_single_file(str(pdf_file), selected_source, verbose)
+        results.append(result)
+
+    print("\nCompleted files:")
+    for result in results:
+        print(f"  - {result.title} -> {result.structured_json_path}")
+
+
 def main():
+    config = get_config()
     parser = argparse.ArgumentParser(
         description="ORBITAL Ingestion Pipeline — Process regulatory PDFs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -169,12 +238,41 @@ def main():
         action="store_true",
         help="Print full obligation list after each file",
     )
+    parser.add_argument(
+        "--pick",
+        action="store_true",
+        help="Scan PDFs and let the user choose one or more files interactively",
+    )
+    parser.add_argument(
+        "--scan-root",
+        type=str,
+        default="",
+        help="Root folder to scan in interactive mode (defaults to data/raw)",
+    )
 
     args = parser.parse_args()
 
+    if args.pick:
+        scan_root = args.scan_root or config.RAW_DATA_PATH
+        chosen = prompt_file_selection(discover_pdf_files(scan_root))
+        if not chosen:
+            print("No files selected.")
+            sys.exit(0)
+        process_selected_files(chosen, args.source, args.verbose)
+        return
+
     if not args.file and not args.folder:
+        scan_root = args.scan_root or config.RAW_DATA_PATH
+        pdf_files = discover_pdf_files(scan_root)
+        if pdf_files:
+            chosen = prompt_file_selection(pdf_files)
+            if not chosen:
+                print("No files selected.")
+                sys.exit(0)
+            process_selected_files(chosen, args.source, args.verbose)
+            return
         parser.print_help()
-        print("\nError: Please provide either --file or --folder")
+        print("\nError: Please provide either --file, --folder, or --pick")
         sys.exit(1)
 
     if args.file:

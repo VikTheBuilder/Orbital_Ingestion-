@@ -131,6 +131,29 @@ ORIGINAL DOCUMENT TEXT:
 
 _PROMPT_VALIDATE_EXTRACTION_MIDDLE = "\n\nEXTRACTED OBLIGATIONS:\n"
 
+_PROMPT_ANALYZE_DOCUMENT_PREFIX = """\
+You are a regulatory document analysis assistant for Indian compliance documents.
+Analyze the document at a global level before clause extraction.
+
+Return ONLY valid JSON in this exact shape:
+{
+  "document_type": "circular / notification / master_direction / guideline / other",
+  "primary_actor": "string",
+  "secondary_actors": ["string"],
+  "dominant_domains": ["domain labels"],
+  "contains_quoted_regulations": true,
+  "contains_enumerated_operational_clause": true,
+  "likely_effective_date_text": "string or empty",
+  "core_obligation_phrases": ["short phrases copied from the document"],
+  "analysis_confidence": 0.0,
+  "reasoning": "one sentence"
+}
+
+Use only evidence present in the document. Keep phrases short.
+
+DOCUMENT TEXT:
+"""
+
 
 # ── Rate Limiter ─────────────────────────────────────────────────────────────
 
@@ -163,6 +186,7 @@ class OrbitalLLMClient:
         self._config = get_config()
         self._rate_limiter = _RateLimiter(calls_per_minute=28)
         self._groq_client = None  # lazy-loaded
+        self._groq_checked = False
         self._default_provider = (self._config.LLM_PROVIDER or "groq").strip().lower()
         self.parse_failures = 0
 
@@ -170,6 +194,7 @@ class OrbitalLLMClient:
 
     def _get_groq_client(self):
         """Lazy-load the Groq client to avoid import errors at startup."""
+        self._groq_checked = True
         if self._groq_client is None:
             try:
                 from groq import Groq  # type: ignore
@@ -184,6 +209,13 @@ class OrbitalLLMClient:
         if selected not in {"groq", "ollama"}:
             logger.warning("Unknown LLM provider, defaulting to Groq", provider=selected)
             return "groq"
+        if selected == "groq" and not self._groq_checked:
+            client = self._get_groq_client()
+            if client is None:
+                return "ollama"
+            return "groq"
+        if selected == "groq" and self._groq_client is None and self._groq_checked:
+            return "ollama"
         return selected
 
     def _chat_groq(self, model: str, prompt: str, max_tokens: int | None = None) -> str:
@@ -377,6 +409,22 @@ class OrbitalLLMClient:
         if isinstance(result, dict):
             return result
         return {"primary_domain": "Other", "secondary_domains": [], "confidence": 0.0, "reasoning": "parse_failed"}
+
+    def analyze_document(self, text: str, provider: str | None = None) -> dict:
+        """Perform one bounded document-level analysis pass before extraction."""
+        if not text or not text.strip():
+            return {}
+
+        prompt = _PROMPT_ANALYZE_DOCUMENT_PREFIX + text[:12000]
+        result = self._chat_and_parse(
+            self._resolve_model("classification", provider=provider),
+            prompt,
+            provider=provider,
+            max_tokens=900,
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
 
     def generate_map_card(self, obligation: dict, provider: str | None = None) -> dict:
         """
